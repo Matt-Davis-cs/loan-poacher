@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en" data-theme="green">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Loan Poacher</title>
+    <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">LP</div>
+        <h1>Loan Poacher</h1>
+        <button id="show-guide" class="guide-toggle" type="button" aria-controls="guide" data-i18n="header.howItWorks">How it works</button>
+      </div>
+      <p class="tagline" data-i18n="header.tagline">Find the student loan that fits your budget.</p>
+      <div class="settings">
+        <div class="themes" role="group" aria-labelledby="themes-label">
+          <span id="themes-label" class="themes-label" data-i18n="header.theme">Theme color:</span>
+          <div id="theme-buttons" class="theme-buttons"></div>
+        </div>
+        <label class="language">
+          <span class="themes-label" data-i18n="header.language">Language:</span>
+          <select id="language"></select>
+        </label>
+      </div>
+      <section id="guide" class="guide" aria-labelledby="guide-title" hidden>
+        <h2 id="guide-title" data-i18n="guide.title">How Loan Poacher works</h2>
+        <ol>
+          <li data-i18n="guide.step1">Enter how much you need to borrow and the monthly payment you can afford.</li>
+          <li data-i18n="guide.step2">
+            Add optional details (credit score, citizenship, state, cosigner) for more personal results. Results
+            update as you type.
+          </li>
+          <li data-i18n="guide.step3">Scroll to the recommendations: each lender is rated out of 10, and "View loan" opens its website.</li>
+        </ol>
+        <p class="guide-note" data-i18n="guide.note">The color circles above only change how the app looks.</p>
+        <button id="hide-guide" class="guide-dismiss" type="button" data-i18n="guide.dismiss">Got it</button>
+      </section>
+    </header>
+
+    <main class="layout">
+      <form id="loan-form" class="panel" novalidate>
+        <h2 data-i18n="form.title">Your situation</h2>
+        <label>
+          <span data-i18n="form.amount">Amount to borrow this year</span>
+          <input id="amount" type="number" inputmode="numeric" min="500" max="200000" step="100" value="10000" />
+        </label>
+        <label>
+          <span data-i18n="form.monthlyBudget">Monthly payment you can afford</span>
+          <input id="monthly-budget" type="number" inputmode="numeric" min="1" step="10" value="150" />
+        </label>
+        <label>
+          <span data-i18n="form.years">Repayment term</span>
+          <select id="years">
+            <option value="5">5 years</option>
+            <option value="10" selected>10 years</option>
+            <option value="15">15 years</option>
+            <option value="20">20 years</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="form.creditScore">Credit score</span>
+          <span class="optional" data-i18n="form.creditScoreHint">(optional, 300–850)</span>
+          <input
+            id="credit-score"
+            type="number"
+            inputmode="numeric"
+            min="300"
+            max="850"
+            placeholder="e.g. 690"
+            data-i18n-placeholder="form.creditScorePlaceholder"
+          />
+        </label>
+        <label>
+          <span data-i18n="form.residency">Citizenship or residency</span>
+          <select id="residency">
+            <option value="citizen" selected data-i18n="residency.citizen">U.S. citizen</option>
+            <option value="permanent-resident" data-i18n="residency.permanent-resident">Permanent resident (green card)</option>
+            <option value="international" data-i18n="residency.international">International student (visa)</option>
+          </select>
+        </label>
+        <label>
+          <span data-i18n="form.state">State you live in</span>
+          <span class="optional" data-i18n="form.optional">(optional)</span>
+          <select id="state">
+            <option value="" selected data-i18n="form.statePreferNot">Prefer not to say</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input id="has-cosigner" type="checkbox" />
+          <span data-i18n="form.cosigner">I have a cosigner with good credit</span>
+        </label>
+        <ul id="errors" class="errors" role="alert"></ul>
+        <p class="disclaimer" data-i18n="form.disclaimer">
+          Rates are built-in sample data for comparison, not live quotes or financial advice. Check each lender for
+          current terms.
+        </p>
+      </form>
+
+      <section class="results">
+        <div class="tabs" role="tablist">
+          <button
+            id="recommendations-tab"
+            class="tab"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            aria-controls="recommendations-panel"
+            data-i18n="results.title"
+          >
+            Recommendations
+          </button>
+          <button id="saved-tab" class="tab" type="button" role="tab" aria-selected="false" aria-controls="saved-panel">
+            Saved loans (0)
+          </button>
+        </div>
+        <div id="recommendations-panel" role="tabpanel" aria-labelledby="recommendations-tab" aria-live="polite">
+          <p id="location-note" class="location-note" hidden></p>
+          <div id="results"></div>
+        </div>
+        <div id="saved-panel" role="tabpanel" aria-labelledby="saved-tab" aria-live="polite" hidden>
+          <div id="saved-results"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="src/i18n.js"></script>
+    <script src="src/loans.js"></script>
+    <script src="src/saved.js"></script>
+    <script src="src/share.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
