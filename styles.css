@@ -365,6 +365,7 @@ h2 {
 }
 
 .save-button,
+.graph-button,
 .received-button,
 .tab {
   padding: 8px 14px;
@@ -382,6 +383,85 @@ h2 {
 .tab[aria-selected="true"] {
   background: var(--accent);
   color: var(--accent-text);
+}
+
+.repayment-graph {
+  margin: 12px 0 0;
+}
+
+.repayment-graph figcaption {
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.graph-plot {
+  position: relative;
+  max-width: 440px;
+}
+
+/* The years always run left to right, even when the page mirrors for Arabic and Hebrew. */
+.graph-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  direction: ltr;
+  touch-action: pan-y;
+  cursor: crosshair;
+}
+
+.graph-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.graph-axis {
+  fill: var(--muted);
+  font-size: 13px;
+}
+
+.graph-area {
+  fill: var(--accent);
+  fill-opacity: 0.1;
+}
+
+.graph-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.graph-label {
+  fill: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+}
+
+.graph-crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.graph-marker {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.graph-tooltip {
+  position: absolute;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .loan-outcome {

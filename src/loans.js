@@ -172,6 +172,20 @@ function monthlyPayment(principal, aprPercent, years) {
   return (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
 }
 
+// What is still owed at the start and after each year of payments; the last entry is exactly $0.
+function repaymentBalances(principal, aprPercent, years) {
+  const monthlyRate = aprPercent / 100 / 12;
+  const payment = monthlyPayment(principal, aprPercent, years);
+  const balances = [principal];
+  let balance = principal;
+  for (let month = 1; month <= years * 12; month++) {
+    balance = balance * (1 + monthlyRate) - payment;
+    if (month % 12 === 0) balances.push(balance);
+  }
+  balances[years] = 0;
+  return balances;
+}
+
 // Better credit moves the estimate from the top of a lender's range toward the bottom.
 function estimateApr(lender, creditScore) {
   if (lender.aprMin === lender.aprMax) return lender.aprMin;
@@ -275,6 +289,7 @@ function evaluateLender(lender, inputs) {
     apr,
     payment,
     totalCost,
+    balances: repaymentBalances(principal, apr, years),
     coveredAmount,
     rawScore,
     rating: Math.round(rawScore),
@@ -298,6 +313,7 @@ if (typeof module !== "undefined") {
   module.exports = {
     LENDERS,
     monthlyPayment,
+    repaymentBalances,
     estimateApr,
     validateInputs,
     evaluateLender,

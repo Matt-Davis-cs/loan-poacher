@@ -13,6 +13,8 @@ const pageStorage = {
 let savedLoanIds = readSavedLoanIds(pageStorage);
 let loanComments = readLoanComments(pageStorage);
 let receivedLoanIds = readReceivedLoanIds(pageStorage);
+// Which repayment graphs are open, so they stay open when the form changes and the cards are redrawn.
+const openGraphs = new Set();
 
 const US_STATES = {
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado",
@@ -160,6 +162,27 @@ function renderLoanOutcome(lender) {
   return area;
 }
 
+// The button that shows a loan's repayment graph, and the space the graph opens in; each tab keeps its own open graphs.
+function renderGraphControls(result, inSavedTab) {
+  const graphKey = `${inSavedTab ? "saved" : "recommended"}-${result.lender.id}`;
+  const graphArea = document.createElement("div");
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "graph-button";
+  const showGraph = () => {
+    const isOpen = openGraphs.has(graphKey);
+    button.textContent = t(isOpen ? "graph.hide" : "graph.show");
+    button.setAttribute("aria-expanded", String(isOpen));
+    graphArea.replaceChildren(...(isOpen ? [renderRepaymentGraph(result.balances)] : []));
+  };
+  button.addEventListener("click", () => {
+    if (!openGraphs.delete(graphKey)) openGraphs.add(graphKey);
+    showGraph();
+  });
+  showGraph();
+  return { button, graphArea };
+}
+
 function renderCard(result, isBest, inSavedTab = false) {
   const card = document.createElement("article");
   card.className = "card" + (result.eligible ? "" : " ineligible");
@@ -238,6 +261,11 @@ function renderCard(result, isBest, inSavedTab = false) {
   actions.append(link, save);
 
   card.append(summary, actions);
+  if (result.eligible) {
+    const { button, graphArea } = renderGraphControls(result, inSavedTab);
+    actions.append(button);
+    card.append(graphArea);
+  }
   if (inSavedTab) card.append(renderLoanOutcome(result.lender), renderCommentArea(result.lender));
   return card;
 }
