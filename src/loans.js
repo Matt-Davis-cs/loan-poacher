@@ -264,12 +264,15 @@ function evaluateLender(lender, inputs) {
   const totalCost = payment * years * 12;
 
   const budgetRatio = payment / monthlyBudget;
-  const affordability = budgetRatio <= 0.7 ? 1 : clamp(1 - (budgetRatio - 0.7) / 0.8, 0, 1);
+  // Judged as if the uncovered rest were borrowed on the same terms, so covering less never looks more affordable.
+  const wholeAmountRatio = budgetRatio / coverage;
+  const affordability = wholeAmountRatio <= 0.7 ? 1 : clamp(1 - (wholeAmountRatio - 0.7) / 0.8, 0, 1);
   const rateScore = clamp((16 - apr) / (16 - 4), 0, 1);
   const flexibilityScore = lender.flexibility / 10;
   const feeScore = clamp(1 - lender.originationFeePercent / 5, 0, 1);
   const weighted = 0.4 * affordability + 0.3 * rateScore + 0.2 * flexibilityScore + 0.1 * feeScore;
-  const rawScore = 10 * weighted * (0.5 + 0.5 * coverage);
+  // Covering only part of the amount already counts against affordability above, so this extra cut stays small.
+  const rawScore = 10 * weighted * (0.8 + 0.2 * coverage);
 
   const parts = [];
   const rateLabel = lender.aprMin === lender.aprMax ? "fixed" : score === null ? "typical" : "estimated";
