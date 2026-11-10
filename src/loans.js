@@ -2,7 +2,11 @@
 // Rates are illustrative sample values, not live quotes.
 
 // The browser loads i18n.js before this file; tests running in Node load it here.
-const i18n = typeof module !== "undefined" ? require("./i18n.js") : { t };
+const i18n = typeof module !== "undefined" ? require("./i18n.js") : { t, formatYears };
+
+// The repayment term a student can pick, in whole years.
+const MIN_YEARS = 1;
+const MAX_YEARS = 50;
 
 const LENDERS = [
   {
@@ -208,7 +212,7 @@ function validateInputs({ amount, monthlyBudget, years, creditScore, residency }
   if (!Number.isFinite(monthlyBudget) || monthlyBudget <= 0) {
     errors.push(i18n.t("error.monthlyBudget"));
   }
-  if (![5, 10, 15, 20].includes(years)) {
+  if (!Number.isInteger(years) || years < MIN_YEARS || years > MAX_YEARS) {
     errors.push(i18n.t("error.years"));
   }
   if (creditScore !== null && (!Number.isFinite(creditScore) || creditScore < 300 || creditScore > 850)) {
@@ -269,7 +273,7 @@ function evaluateLender(lender, inputs) {
 
   const parts = [];
   const rateLabel = lender.aprMin === lender.aprMax ? "fixed" : score === null ? "typical" : "estimated";
-  parts.push(i18n.t(`summary.rate.${rateLabel}`, { apr: apr.toFixed(2), payment: formatMoney(payment), years }));
+  parts.push(i18n.t(`summary.rate.${rateLabel}`, { apr: apr.toFixed(2), payment: formatMoney(payment), term: i18n.formatYears(years) }));
   if (budgetRatio <= 1) {
     parts.push(i18n.t("summary.fitsBudget", { budget: formatMoney(monthlyBudget) }));
   } else {

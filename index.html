@@ -51,15 +51,16 @@
           <span data-i18n="form.monthlyBudget">Monthly payment you can afford</span>
           <input id="monthly-budget" type="number" inputmode="numeric" min="1" step="10" value="150" />
         </label>
-        <label>
-          <span data-i18n="form.years">Repayment term</span>
-          <select id="years">
-            <option value="5">5 years</option>
-            <option value="10" selected>10 years</option>
-            <option value="15">15 years</option>
-            <option value="20">20 years</option>
-          </select>
-        </label>
+        <div class="term-field">
+          <label for="years">
+            <span data-i18n="form.years">Repayment term</span>:
+            <output id="years-text" for="years years-box">10 years</output>
+          </label>
+          <div class="term-controls">
+            <input id="years" type="range" min="1" max="50" step="1" value="10" />
+            <input id="years-box" type="number" inputmode="numeric" min="1" max="50" step="1" value="10" />
+          </div>
+        </div>
         <label>
           <span data-i18n="form.creditScore">Credit score</span>
           <span class="optional" data-i18n="form.creditScoreHint">(optional, 300–850)</span>

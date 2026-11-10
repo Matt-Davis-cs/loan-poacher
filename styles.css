@@ -236,6 +236,32 @@ h2 {
   outline-offset: 1px;
 }
 
+.term-field {
+  margin-bottom: 14px;
+}
+
+.term-field label {
+  margin-bottom: 0;
+}
+
+.term-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.term-controls input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  accent-color: var(--accent);
+}
+
+.panel .term-controls input[type="number"] {
+  width: 5.5em;
+  flex: none;
+}
+
 .panel .checkbox {
   display: flex;
   align-items: center;

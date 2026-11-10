@@ -56,7 +56,8 @@ function renderRepaymentGraph(balances) {
     );
   }
 
-  const yearStep = years === 5 ? 1 : 5;
+  // Every year for short terms, then every 5 or 10 so the labels never crowd together.
+  const yearStep = years <= 10 ? 1 : years <= 25 ? 5 : 10;
   for (let year = 0; year <= years; year += yearStep) {
     svg.append(svgElement("text", { class: "graph-axis", x: xFor(year), y: GRAPH_BOTTOM + 18, "text-anchor": "middle" }, String(year)));
   }

@@ -37,12 +37,33 @@ function readInputs() {
   return {
     amount: readNumber("amount"),
     monthlyBudget: readNumber("monthly-budget"),
-    years: Number(document.getElementById("years").value),
+    years: readNumber("years-box"),
     creditScore: readNumber("credit-score"),
     residency: document.getElementById("residency").value,
     state: document.getElementById("state").value || null,
     hasCosigner: document.getElementById("has-cosigner").checked,
   };
+}
+
+// Shows the chosen term next to its label, like "10 years"; blank while the typed term is not a usable number.
+function showTerm() {
+  const years = readNumber("years-box");
+  document.getElementById("years-text").textContent = Number.isInteger(years) && years >= 1 ? formatYears(years) : "";
+}
+
+// Keeps the slider and the typed term in step; the typed box is what the recommendations read.
+function setUpTerm() {
+  const slider = document.getElementById("years");
+  const box = document.getElementById("years-box");
+  slider.addEventListener("input", () => {
+    box.value = slider.value;
+    showTerm();
+  });
+  box.addEventListener("input", () => {
+    const years = readNumber("years-box");
+    if (Number.isInteger(years) && years >= Number(slider.min) && years <= Number(slider.max)) slider.value = String(years);
+    showTerm();
+  });
 }
 
 function setUpStates() {
@@ -385,9 +406,8 @@ function applyLanguage(language) {
   for (const element of document.querySelectorAll("[data-i18n-placeholder]")) {
     element.placeholder = t(element.dataset.i18nPlaceholder);
   }
-  for (const option of document.getElementById("years").options) {
-    option.textContent = t("form.yearsOption", { years: option.value });
-  }
+  document.getElementById("years-box").setAttribute("aria-label", t("form.yearsBox"));
+  showTerm();
   labelThemeButtons();
   update();
   try {
@@ -445,6 +465,7 @@ function setUpGuide() {
 
 setUpThemes();
 setUpStates();
+setUpTerm();
 setUpGuide();
 setUpTabs();
 setUpLanguages();
