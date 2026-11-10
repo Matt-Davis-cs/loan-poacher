@@ -127,11 +127,20 @@
       </section>
     </main>
 
+    <section id="debug-panel" class="debug-panel" aria-labelledby="debug-title" hidden>
+      <h2 id="debug-title">Debug: how ratings were scored</h2>
+      <p class="debug-note">Shown because the address ends in ?debug=1. Nothing here is sent or saved.</p>
+      <button id="copy-debug-report" class="debug-copy-button" type="button">Copy report</button>
+      <span id="debug-copy-status" class="debug-copy-status" aria-live="polite"></span>
+      <pre id="debug-report" class="debug-report"></pre>
+    </section>
+
     <script src="src/i18n.js"></script>
     <script src="src/loans.js"></script>
     <script src="src/saved.js"></script>
     <script src="src/share.js"></script>
     <script src="src/graph.js"></script>
+    <script src="src/debug.js"></script>
     <script src="src/app.js"></script>
   </body>
 </html>

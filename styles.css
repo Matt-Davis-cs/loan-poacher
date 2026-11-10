@@ -393,6 +393,7 @@ h2 {
 .save-button,
 .graph-button,
 .received-button,
+.debug-copy-button,
 .tab {
   padding: 8px 14px;
   border: 1px solid var(--accent);
@@ -640,4 +641,37 @@ h2 {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+.debug-panel {
+  max-width: 1100px;
+  margin: 0 auto 24px;
+  padding: 16px;
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+}
+
+.debug-note {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.debug-copy-status {
+  margin-inline-start: 10px;
+  font-size: 0.9rem;
+}
+
+.debug-report {
+  margin: 12px 0 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
 }

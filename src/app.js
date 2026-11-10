@@ -13,6 +13,8 @@ const pageStorage = {
 let savedLoanIds = readSavedLoanIds(pageStorage);
 let loanComments = readLoanComments(pageStorage);
 let receivedLoanIds = readReceivedLoanIds(pageStorage);
+// The ?debug=1 address shows how each rating was scored, for investigating a rating someone reports as wrong.
+const DEBUG_MODE = new URLSearchParams(location.search).get("debug") === "1";
 // Which repayment graphs are open, so they stay open when the form changes and the cards are redrawn.
 const openGraphs = new Set();
 
@@ -330,15 +332,35 @@ function update() {
   renderSavedLoans(inputs, errors.length > 0);
   if (errors.length > 0) {
     results.replaceChildren(emptyMessage(t("results.fixForm")));
+    showDebugReport(`Loan Poacher debug report\nThe form has errors, so nothing was scored:\n${errors.join("\n")}`);
     return;
   }
 
   const ranked = rankLenders(inputs);
+  showDebugReport(debugReport(inputs, ranked));
   const cards = ranked.map((result, index) => renderCard(result, index === 0 && result.eligible));
   if (!ranked.some((result) => result.eligible)) {
     cards.unshift(emptyMessage(t("results.noneFit")));
   }
   results.replaceChildren(...cards);
+}
+
+function showDebugReport(text) {
+  if (DEBUG_MODE) document.getElementById("debug-report").textContent = text;
+}
+
+function setUpDebugPanel() {
+  if (!DEBUG_MODE) return;
+  document.getElementById("debug-panel").hidden = false;
+  const status = document.getElementById("debug-copy-status");
+  document.getElementById("copy-debug-report").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(document.getElementById("debug-report").textContent);
+      status.textContent = "✓ Copied";
+    } catch {
+      status.textContent = "Couldn't copy here: select the report text and copy it instead.";
+    }
+  });
 }
 
 function setUpTabs() {
@@ -466,6 +488,7 @@ function setUpGuide() {
 setUpThemes();
 setUpStates();
 setUpTerm();
+setUpDebugPanel();
 setUpGuide();
 setUpTabs();
 setUpLanguages();

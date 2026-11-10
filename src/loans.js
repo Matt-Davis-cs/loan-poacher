@@ -161,6 +161,9 @@ const LENDERS = [
 
 const RESIDENCY_STATUSES = ["citizen", "permanent-resident", "international"];
 
+// How much each part counts toward a rating; they add up to 1.
+const RATING_WEIGHTS = { affordability: 0.4, rate: 0.3, flexibility: 0.2, fee: 0.1 };
+
 // A cosigner with good credit lets a student qualify and price as if their score were at least this.
 const COSIGNER_CREDIT_SCORE = 720;
 
@@ -270,9 +273,14 @@ function evaluateLender(lender, inputs) {
   const rateScore = clamp((16 - apr) / (16 - 4), 0, 1);
   const flexibilityScore = lender.flexibility / 10;
   const feeScore = clamp(1 - lender.originationFeePercent / 5, 0, 1);
-  const weighted = 0.4 * affordability + 0.3 * rateScore + 0.2 * flexibilityScore + 0.1 * feeScore;
+  const weighted =
+    RATING_WEIGHTS.affordability * affordability +
+    RATING_WEIGHTS.rate * rateScore +
+    RATING_WEIGHTS.flexibility * flexibilityScore +
+    RATING_WEIGHTS.fee * feeScore;
   // Covering only part of the amount already counts against affordability above, so this extra cut stays small.
-  const rawScore = 10 * weighted * (0.8 + 0.2 * coverage);
+  const coverageMultiplier = 0.8 + 0.2 * coverage;
+  const rawScore = 10 * weighted * coverageMultiplier;
 
   const parts = [];
   const rateLabel = lender.aprMin === lender.aprMax ? "fixed" : score === null ? "typical" : "estimated";
@@ -300,6 +308,17 @@ function evaluateLender(lender, inputs) {
     coveredAmount,
     rawScore,
     rating: Math.round(rawScore),
+    // Each part of the rating from 0 to 1, for the ?debug=1 report.
+    parts: {
+      affordability,
+      rate: rateScore,
+      flexibility: flexibilityScore,
+      fee: feeScore,
+      budgetRatio,
+      wholeAmountRatio,
+      coverage,
+      coverageMultiplier,
+    },
     summary: parts.join(i18n.t("summary.separator")),
   };
 }
@@ -319,6 +338,7 @@ function rankLenders(inputs, lenders = LENDERS) {
 if (typeof module !== "undefined") {
   module.exports = {
     LENDERS,
+    RATING_WEIGHTS,
     monthlyPayment,
     repaymentBalances,
     estimateApr,
