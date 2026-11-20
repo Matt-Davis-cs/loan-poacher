@@ -25,6 +25,10 @@ function describeInputs(inputs) {
       ? `cosigner: yes (score: ${inputs.cosignerCreditScore ?? "not given"}, `
         + `cash and assets: ${inputs.cosignerCapital === null ? "not given" : loanLogic.formatMoney(inputs.cosignerCapital)})`
       : "cosigner: no",
+    inputs.annualIncome === null || inputs.annualIncome === undefined
+      ? "income: not given"
+      : `income: ${loanLogic.formatMoney(inputs.annualIncome)}/year, ${inputs.incomeShare}% toward loans `
+        + `(${loanLogic.formatMoney((inputs.annualIncome * inputs.incomeShare) / 100 / 12)}/month)`,
   ].join(", ");
 }
 
@@ -36,10 +40,15 @@ function describeResult(result, place, inputs) {
   const coverageText = parts.coverage < 1
     ? `covers ${loanLogic.formatMoney(result.coveredAmount)} of ${loanLogic.formatMoney(inputs.amount)} (${formatPercent(parts.coverage)})`
     : "covers the whole amount";
+  const measure = parts.fromIncome > inputs.monthlyBudget ? "the income share" : "budget";
+  const extraLine = result.payment > result.requiredPayment
+    ? [`   paying ${formatCents(result.payment)}/month from income, paid off within ${result.balances.length - 1} years`]
+    : [];
   return [
     `${heading}: ${result.rating}/10 (score ${result.rawScore.toFixed(2)})`,
-    `   APR ${result.apr.toFixed(2)}%, ${coverageText}, payment ${formatCents(result.payment)}/month = ` +
-      `${formatPercent(parts.budgetRatio)} of budget (${formatPercent(parts.wholeAmountRatio)} for the whole amount)`,
+    `   APR ${result.apr.toFixed(2)}%, ${coverageText}, required payment ${formatCents(result.requiredPayment)}/month = ` +
+      `${formatPercent(parts.budgetRatio)} of ${measure} (${formatPercent(parts.wholeAmountRatio)} for the whole amount)`,
+    ...extraLine,
     `   affordability ${parts.affordability.toFixed(2)}, rate ${parts.rate.toFixed(2)}, ` +
       `flexibility ${parts.flexibility.toFixed(2)}, fee ${parts.fee.toFixed(2)}, coverage cut ×${parts.coverageMultiplier.toFixed(2)}`,
   ].join("\n");
@@ -52,7 +61,8 @@ function debugReport(inputs, ranked) {
     `Entered: ${describeInputs(inputs)}`,
     `Score = 10 × (affordability × ${weights.affordability} + rate × ${weights.rate} + ` +
       `flexibility × ${weights.flexibility} + fee × ${weights.fee}) × coverage cut; the rating is the score rounded.`,
-    "Affordability is 1 while the payment for the whole amount is at most 70% of the budget, and 0 at 150% or more.",
+    "Affordability is 1 while the required payment for the whole amount is at most 70% of the budget (or of the " +
+      "income share, when that is larger), and 0 at 150% or more.",
     "",
     ...ranked.map((result, index) => describeResult(result, index + 1, inputs)),
   ].join("\n");

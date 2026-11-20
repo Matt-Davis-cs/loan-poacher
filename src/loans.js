@@ -12,6 +12,11 @@ const MAX_YEARS = 50;
 const MIN_APR_FILTER = 0;
 const MAX_APR_FILTER = 30;
 
+// The yearly income a student can enter, and the share of it (in percent) they can put toward a loan.
+const MAX_ANNUAL_INCOME = 10000000;
+const MIN_INCOME_SHARE = 1;
+const MAX_INCOME_SHARE = 100;
+
 const LENDERS = [
   {
     id: "federal",
@@ -189,18 +194,36 @@ function monthlyPayment(principal, aprPercent, years) {
   return (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
 }
 
-// What is still owed at the start and after each year of payments; the last entry is exactly $0.
-function repaymentBalances(principal, aprPercent, years) {
+// Paying `payment` each month for at most `years`: what is still owed at the start and after each year (the last
+// entry is exactly $0, in the year the loan is paid off), how many months that takes, and the total paid. The last
+// payment is only what is left, and at the standard payment the loan ends with the term.
+function repaymentPlan(principal, aprPercent, years, payment) {
   const monthlyRate = aprPercent / 100 / 12;
-  const payment = monthlyPayment(principal, aprPercent, years);
   const balances = [principal];
   let balance = principal;
+  let totalPaid = 0;
   for (let month = 1; month <= years * 12; month++) {
-    balance = balance * (1 + monthlyRate) - payment;
+    const owed = balance * (1 + monthlyRate);
+    if (owed <= payment || month === years * 12) {
+      balances.push(0);
+      return { balances, months: month, totalPaid: totalPaid + owed };
+    }
+    balance = owed - payment;
+    totalPaid += payment;
     if (month % 12 === 0) balances.push(balance);
   }
-  balances[years] = 0;
-  return balances;
+  return { balances, months: 0, totalPaid };
+}
+
+// What is still owed at the start and after each year of standard payments; the last entry is exactly $0.
+function repaymentBalances(principal, aprPercent, years) {
+  return repaymentPlan(principal, aprPercent, years, monthlyPayment(principal, aprPercent, years)).balances;
+}
+
+// What the student puts toward a loan each month from their income: a share of their yearly income, or 0 without one.
+function monthlyFromIncome({ annualIncome = null, incomeShare = null }) {
+  if (!Number.isFinite(annualIncome) || !Number.isFinite(incomeShare)) return 0;
+  return (annualIncome * incomeShare) / 100 / 12;
 }
 
 // Better credit moves the estimate from the top of a lender's range toward the bottom.
@@ -237,6 +260,8 @@ function validateInputs({
   hasCosigner = false,
   cosignerCreditScore = null,
   cosignerCapital = null,
+  annualIncome = null,
+  incomeShare = null,
 }) {
   const errors = [];
   if (!Number.isFinite(amount) || amount < 500 || amount > 200000) {
@@ -265,6 +290,14 @@ function validateInputs({
   const aprInRange = (apr) => apr === null || (Number.isFinite(apr) && apr >= MIN_APR_FILTER && apr <= MAX_APR_FILTER);
   if (!aprInRange(minApr) || !aprInRange(maxApr) || (minApr !== null && maxApr !== null && minApr > maxApr)) {
     errors.push(i18n.t("error.aprRange"));
+  }
+  if (annualIncome !== null && (!Number.isFinite(annualIncome) || annualIncome < 0 || annualIncome > MAX_ANNUAL_INCOME)) {
+    errors.push(i18n.t("error.income"));
+  }
+  // The share only matters once there is an income to take it from.
+  if (annualIncome !== null
+    && (!Number.isFinite(incomeShare) || incomeShare < MIN_INCOME_SHARE || incomeShare > MAX_INCOME_SHARE)) {
+    errors.push(i18n.t("error.incomeShare"));
   }
   return errors;
 }
@@ -320,10 +353,19 @@ function evaluateLender(lender, inputs) {
     return { lender, eligible: false, rating: 0, rawScore: 0, summary: aprReason };
   }
   const principal = coveredAmount * (1 + lender.originationFeePercent / 100);
-  const payment = monthlyPayment(principal, apr, years);
-  const totalCost = payment * years * 12;
+  const requiredPayment = monthlyPayment(principal, apr, years);
+  const standardCost = requiredPayment * years * 12;
+  // A share of income bigger than the required payment goes toward the loan, paying it off before the term.
+  const fromIncome = monthlyFromIncome(inputs);
+  const paysExtra = fromIncome > requiredPayment;
+  const payment = paysExtra ? fromIncome : requiredPayment;
+  const plan = paysExtra ? repaymentPlan(principal, apr, years, payment) : null;
+  const totalCost = paysExtra ? plan.totalPaid : standardCost;
+  const balances = paysExtra ? plan.balances : repaymentBalances(principal, apr, years);
 
-  const budgetRatio = payment / monthlyBudget;
+  // Affordability: the required payment against the most the student can put in, their budget or income share.
+  const available = Math.max(monthlyBudget, fromIncome);
+  const budgetRatio = requiredPayment / available;
   // Judged as if the uncovered rest were borrowed on the same terms, so covering less never looks more affordable.
   const wholeAmountRatio = budgetRatio / coverage;
   const affordability = wholeAmountRatio <= 0.7 ? 1 : clamp(1 - (wholeAmountRatio - 0.7) / 0.8, 0, 1);
@@ -341,11 +383,18 @@ function evaluateLender(lender, inputs) {
 
   const parts = [];
   const rateLabel = lender.aprMin === lender.aprMax ? "fixed" : score === null ? "typical" : "estimated";
-  parts.push(i18n.t(`summary.rate.${rateLabel}`, { apr: apr.toFixed(2), payment: formatMoney(payment), term: i18n.formatYears(years) }));
-  if (budgetRatio <= 1) {
+  const paidOffYears = balances.length - 1;
+  parts.push(i18n.t(`summary.rate.${rateLabel}`, { apr: apr.toFixed(2), payment: formatMoney(payment), term: i18n.formatYears(paidOffYears) }));
+  if (paysExtra) {
+    parts.push(i18n.t("summary.fromIncome", {
+      share: String(inputs.incomeShare),
+      term: i18n.formatYears(years),
+      saved: formatMoney(standardCost - totalCost),
+    }));
+  } else if (budgetRatio <= 1) {
     parts.push(i18n.t("summary.fitsBudget", { budget: formatMoney(monthlyBudget) }));
   } else {
-    parts.push(i18n.t("summary.overBudget", { amount: formatMoney(payment - monthlyBudget) }));
+    parts.push(i18n.t("summary.overBudget", { amount: formatMoney(requiredPayment - available) }));
   }
   if (coverage < 1) {
     parts.push(i18n.t("summary.partialCoverage", { amount: formatMoney(coveredAmount) }));
@@ -360,8 +409,9 @@ function evaluateLender(lender, inputs) {
     eligible: true,
     apr,
     payment,
+    requiredPayment,
     totalCost,
-    balances: repaymentBalances(principal, apr, years),
+    balances,
     coveredAmount,
     rawScore,
     rating: Math.round(rawScore),
@@ -373,6 +423,8 @@ function evaluateLender(lender, inputs) {
       fee: feeScore,
       budgetRatio,
       wholeAmountRatio,
+      available,
+      fromIncome,
       coverage,
       coverageMultiplier,
     },
@@ -398,6 +450,7 @@ if (typeof module !== "undefined") {
     RATING_WEIGHTS,
     monthlyPayment,
     repaymentBalances,
+    repaymentPlan,
     estimateApr,
     validateInputs,
     evaluateLender,

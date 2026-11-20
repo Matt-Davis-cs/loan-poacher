@@ -50,6 +50,8 @@ function readInputs() {
     hasCosigner: document.getElementById("has-cosigner").checked,
     cosignerCreditScore: readNumber("cosigner-score"),
     cosignerCapital: readNumber("cosigner-capital"),
+    annualIncome: readNumber("annual-income"),
+    incomeShare: readNumber("income-share"),
   };
 }
 

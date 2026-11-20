@@ -70,6 +70,22 @@
           <span data-i18n="form.monthlyBudget">Monthly payment you can afford</span>
           <input id="monthly-budget" type="number" inputmode="numeric" min="1" step="10" value="150" />
         </label>
+        <fieldset class="pair-field">
+          <legend>
+            <span data-i18n="form.income">Your income</span>
+            <span class="optional" data-i18n="form.optional">(optional)</span>
+          </legend>
+          <div class="pair-controls">
+            <label>
+              <span data-i18n="form.incomePerYear">Income per year ($)</span>
+              <input id="annual-income" type="number" inputmode="numeric" min="0" step="1000" />
+            </label>
+            <label>
+              <span data-i18n="form.incomeShare">Share for loans (%)</span>
+              <input id="income-share" type="number" inputmode="decimal" min="1" max="100" step="1" value="10" />
+            </label>
+          </div>
+        </fieldset>
         <div class="term-field">
           <label for="years">
             <span data-i18n="form.years">Repayment term</span>:
@@ -93,12 +109,12 @@
             data-i18n-placeholder="form.creditScorePlaceholder"
           />
         </label>
-        <fieldset class="apr-field">
+        <fieldset class="pair-field">
           <legend>
             <span data-i18n="form.apr">APR you'd accept</span>
             <span class="optional" data-i18n="form.aprHint">(optional, %)</span>
           </legend>
-          <div class="apr-controls">
+          <div class="pair-controls">
             <label>
               <span data-i18n="form.aprLowest">Lowest</span>
               <input id="apr-min" type="number" inputmode="decimal" min="0" max="30" step="0.1" />
