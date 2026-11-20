@@ -746,3 +746,59 @@ h2 {
   border-radius: 8px;
   color: var(--text);
 }
+
+/* Confetti for "I got this loan": it covers the page, but clicks pass straight through. */
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -16px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.5, 0.45, 1);
+  animation-fill-mode: both;
+}
+
+.confetti-piece.wide {
+  width: 14px;
+  height: 7px;
+}
+
+@keyframes confetti-fall {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--drift), 105vh) rotate(var(--spin));
+    opacity: 0;
+  }
+}
+
+/* With the device's reduce-motion setting on, the pieces appear scattered and fade without moving. */
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece {
+    top: var(--top);
+    animation-name: confetti-fade;
+  }
+}
+
+@keyframes confetti-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

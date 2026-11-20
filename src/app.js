@@ -194,6 +194,7 @@ function renderLoanOutcome(lender) {
   button.addEventListener("click", () => {
     receivedLoanIds = toggleReceivedLoan(pageStorage, receivedLoanIds, lender.id);
     showOutcome();
+    if (receivedLoanIds.includes(lender.id)) celebrate();
   });
   showOutcome();
 
@@ -548,6 +549,7 @@ function setUpGuide() {
 }
 
 setUpColors();
+prepareCheer();
 setUpStates();
 setUpCosigner();
 setUpTerm();
