@@ -1,7 +1,8 @@
 // Wires the form, color picker, language picker, and results list for Loan Poacher.
 
-const THEMES = ["green", "blue", "red", "black", "pink", "gray", "neon", "silver", "gold"];
-const THEME_STORAGE_KEY = "loan-poacher-theme";
+const COLOR_STORAGE_KEY = "loan-poacher-colors";
+// Where the theme was kept before the color slider; read once so an old choice carries over, then removed.
+const OLD_THEME_STORAGE_KEY = "loan-poacher-theme";
 const GUIDE_DISMISSED_KEY = "loan-poacher-guide-dismissed";
 const LANGUAGE_STORAGE_KEY = "loan-poacher-language";
 
@@ -41,10 +42,25 @@ function readInputs() {
     monthlyBudget: readNumber("monthly-budget"),
     years: readNumber("years-box"),
     creditScore: readNumber("credit-score"),
+    minApr: readNumber("apr-min"),
+    maxApr: readNumber("apr-max"),
     residency: document.getElementById("residency").value,
     state: document.getElementById("state").value || null,
     hasCosigner: document.getElementById("has-cosigner").checked,
+    cosignerCreditScore: readNumber("cosigner-score"),
+    cosignerCapital: readNumber("cosigner-capital"),
   };
+}
+
+// Shows the cosigner's details only while "I have a cosigner" is ticked.
+function setUpCosigner() {
+  const checkbox = document.getElementById("has-cosigner");
+  const details = document.getElementById("cosigner-details");
+  const showDetails = () => {
+    details.hidden = !checkbox.checked;
+  };
+  checkbox.addEventListener("change", showDetails);
+  showDetails();
 }
 
 // Shows the chosen term next to its label, like "10 years"; blank while the typed term is not a usable number.
@@ -378,40 +394,85 @@ function setUpTabs() {
   }
 }
 
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
+// The color the page is painted with: a spot on the color wheel (or Black or Gray), a finish, and a light or dark page.
+let colorChoice = { ...DEFAULT_COLOR_CHOICE };
+
+// Shows the color choice on the slider, the Black and Gray dots, and the finish and page buttons, in the chosen
+// language. The slider names its color for screen readers, like "Blue". Light is unavailable while Neon or Black is
+// on, since those always use a dark page, and its tooltip says so.
+function showColorChoice() {
+  const slider = document.getElementById("hue-slider");
+  slider.value = String(colorChoice.hue);
+  slider.setAttribute("aria-label", t("theme.hue"));
+  slider.setAttribute("aria-valuetext", t(hueNameKey(colorChoice.hue)));
   for (const button of document.querySelectorAll(".theme-button")) {
-    button.setAttribute("aria-pressed", String(button.dataset.theme === theme));
+    button.setAttribute("aria-pressed", String(button.dataset.base === colorChoice.base));
   }
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  } catch {
-    // Storage can be unavailable (private windows, file:// in some browsers); the theme still applies.
+  for (const button of document.querySelectorAll(".finish-button")) {
+    button.setAttribute("aria-pressed", String(button.dataset.finish === colorChoice.finish));
+  }
+  const darkPage = isDarkPage(colorChoice);
+  const alwaysDark = colorChoice.finish === "neon" || colorChoice.base === "black";
+  for (const button of document.querySelectorAll(".mode-button")) {
+    button.setAttribute("aria-pressed", String((button.dataset.mode === "dark") === darkPage));
+    if (alwaysDark && button.dataset.mode === "light") {
+      button.setAttribute("aria-disabled", "true");
+      button.title = t("mode.lockedDark");
+    } else {
+      button.removeAttribute("aria-disabled");
+      button.removeAttribute("title");
+    }
   }
 }
 
-function setUpThemes() {
-  const container = document.getElementById("theme-buttons");
-  for (const theme of THEMES) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "theme-button";
-    button.dataset.theme = theme;
-    button.addEventListener("click", () => applyTheme(theme));
-    container.append(button);
+// Paints the page with a color choice, shows it on the controls, and remembers it.
+function applyColors(choice) {
+  colorChoice = choice;
+  const palette = colorPalette(choice);
+  const root = document.documentElement;
+  for (const [name, value] of Object.entries(paletteCssVariables(palette))) {
+    root.style.setProperty(name, value);
+  }
+  root.style.colorScheme = palette.dark ? "dark" : "light";
+  root.dataset.finish = choice.finish;
+  showColorChoice();
+  try {
+    localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(choice));
+    localStorage.removeItem(OLD_THEME_STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable (private windows, file:// in some browsers); the colors still apply.
+  }
+}
+
+function setUpColors() {
+  const slider = document.getElementById("hue-slider");
+  slider.addEventListener("input", () => applyColors({ ...colorChoice, hue: Number(slider.value), base: "color" }));
+  for (const button of document.querySelectorAll(".theme-button")) {
+    button.addEventListener("click", () => applyColors({ ...colorChoice, base: button.dataset.base }));
+  }
+  for (const button of document.querySelectorAll(".finish-button")) {
+    button.addEventListener("click", () => applyColors({ ...colorChoice, finish: button.dataset.finish }));
+  }
+  for (const button of document.querySelectorAll(".mode-button")) {
+    button.addEventListener("click", () => {
+      if (button.getAttribute("aria-disabled") === "true") return;
+      applyColors({ ...colorChoice, mode: button.dataset.mode });
+    });
   }
   let saved = null;
+  let oldTheme = null;
   try {
-    saved = localStorage.getItem(THEME_STORAGE_KEY);
+    saved = localStorage.getItem(COLOR_STORAGE_KEY);
+    oldTheme = localStorage.getItem(OLD_THEME_STORAGE_KEY);
   } catch {
-    // Fall back to the default theme below.
+    // Fall back to the default colors below.
   }
-  applyTheme(THEMES.includes(saved) ? saved : "green");
+  applyColors(readColorChoice(saved, oldTheme));
 }
 
 function labelThemeButtons() {
   for (const button of document.querySelectorAll(".theme-button")) {
-    button.title = t(`theme.${button.dataset.theme}`);
+    button.title = t(`theme.${button.dataset.base}`);
     button.setAttribute("aria-label", t("theme.label", { theme: button.title }));
   }
 }
@@ -431,6 +492,7 @@ function applyLanguage(language) {
   document.getElementById("years-box").setAttribute("aria-label", t("form.yearsBox"));
   showTerm();
   labelThemeButtons();
+  showColorChoice();
   update();
   try {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, getLanguage());
@@ -485,8 +547,9 @@ function setUpGuide() {
   });
 }
 
-setUpThemes();
+setUpColors();
 setUpStates();
+setUpCosigner();
 setUpTerm();
 setUpDebugPanel();
 setUpGuide();

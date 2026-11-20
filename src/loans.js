@@ -8,6 +8,10 @@ const i18n = typeof module !== "undefined" ? require("./i18n.js") : { t, formatY
 const MIN_YEARS = 1;
 const MAX_YEARS = 50;
 
+// The APR range a student can set as a filter, in percent.
+const MIN_APR_FILTER = 0;
+const MAX_APR_FILTER = 30;
+
 const LENDERS = [
   {
     id: "federal",
@@ -164,8 +168,14 @@ const RESIDENCY_STATUSES = ["citizen", "permanent-resident", "international"];
 // How much each part counts toward a rating; they add up to 1.
 const RATING_WEIGHTS = { affordability: 0.4, rate: 0.3, flexibility: 0.2, fee: 0.1 };
 
-// A cosigner with good credit lets a student qualify and price as if their score were at least this.
+// A cosigner lets a student qualify and price as if their score were at least the cosigner's.
+// When the cosigner's score isn't given, "a cosigner with good credit" is taken to mean this.
 const COSIGNER_CREDIT_SCORE = 720;
+// A cosigner whose cash and assets cover less than this share of the amount is weaker backing,
+// so lenders count their score this many points lower.
+const COSIGNER_CAPITAL_SHARE = 0.25;
+const THIN_CAPITAL_SCORE_CUT = 50;
+const MAX_COSIGNER_CAPITAL = 100000000;
 
 function clamp(value, low, high) {
   return Math.min(high, Math.max(low, value));
@@ -201,13 +211,33 @@ function estimateApr(lender, creditScore) {
   return lender.aprMax - position * (lender.aprMax - lender.aprMin);
 }
 
-function effectiveCreditScore(creditScore, hasCosigner) {
-  if (!hasCosigner) return creditScore;
-  return Math.max(creditScore ?? 0, COSIGNER_CREDIT_SCORE);
+// The score lenders see from the cosigner, or null without one.
+function cosignerScore({ amount, hasCosigner, cosignerCreditScore = null, cosignerCapital = null }) {
+  if (!hasCosigner) return null;
+  const score = cosignerCreditScore ?? COSIGNER_CREDIT_SCORE;
+  const thinCapital = cosignerCapital !== null && cosignerCapital < amount * COSIGNER_CAPITAL_SHARE;
+  return thinCapital ? score - THIN_CAPITAL_SCORE_CUT : score;
+}
+
+function effectiveCreditScore(inputs) {
+  const backing = cosignerScore(inputs);
+  if (backing === null) return inputs.creditScore;
+  return Math.max(inputs.creditScore ?? 0, backing);
 }
 
 // Returns a list of error messages; empty means the inputs are usable.
-function validateInputs({ amount, monthlyBudget, years, creditScore, residency }) {
+function validateInputs({
+  amount,
+  monthlyBudget,
+  years,
+  creditScore,
+  residency,
+  minApr = null,
+  maxApr = null,
+  hasCosigner = false,
+  cosignerCreditScore = null,
+  cosignerCapital = null,
+}) {
   const errors = [];
   if (!Number.isFinite(amount) || amount < 500 || amount > 200000) {
     errors.push(i18n.t("error.amount"));
@@ -223,6 +253,18 @@ function validateInputs({ amount, monthlyBudget, years, creditScore, residency }
   }
   if (!RESIDENCY_STATUSES.includes(residency)) {
     errors.push(i18n.t("error.residency"));
+  }
+  if (hasCosigner && cosignerCreditScore !== null
+    && (!Number.isFinite(cosignerCreditScore) || cosignerCreditScore < 300 || cosignerCreditScore > 850)) {
+    errors.push(i18n.t("error.cosignerScore"));
+  }
+  if (hasCosigner && cosignerCapital !== null
+    && (!Number.isFinite(cosignerCapital) || cosignerCapital < 0 || cosignerCapital > MAX_COSIGNER_CAPITAL)) {
+    errors.push(i18n.t("error.cosignerCapital"));
+  }
+  const aprInRange = (apr) => apr === null || (Number.isFinite(apr) && apr >= MIN_APR_FILTER && apr <= MAX_APR_FILTER);
+  if (!aprInRange(minApr) || !aprInRange(maxApr) || (minApr !== null && maxApr !== null && minApr > maxApr)) {
+    errors.push(i18n.t("error.aprRange"));
   }
   return errors;
 }
@@ -250,9 +292,20 @@ function ineligibilityReason(lender, inputs, score) {
   return null;
 }
 
+// Why this loan's estimated APR is outside the range the student set, or null if it is inside (or no range is set).
+function aprFilterReason(apr, { minApr = null, maxApr = null }) {
+  if (maxApr !== null && apr > maxApr) {
+    return i18n.t("reason.aprAboveMax", { apr: apr.toFixed(2), limit: maxApr });
+  }
+  if (minApr !== null && apr < minApr) {
+    return i18n.t("reason.aprBelowMin", { apr: apr.toFixed(2), limit: minApr });
+  }
+  return null;
+}
+
 function evaluateLender(lender, inputs) {
-  const { amount, monthlyBudget, years, creditScore, hasCosigner } = inputs;
-  const score = effectiveCreditScore(creditScore, hasCosigner);
+  const { amount, monthlyBudget, years } = inputs;
+  const score = effectiveCreditScore(inputs);
 
   const reason = ineligibilityReason(lender, inputs, score);
   if (reason !== null) {
@@ -262,6 +315,10 @@ function evaluateLender(lender, inputs) {
   const coveredAmount = Math.min(amount, lender.maxAmount);
   const coverage = coveredAmount / amount;
   const apr = estimateApr(lender, score);
+  const aprReason = aprFilterReason(apr, inputs);
+  if (aprReason !== null) {
+    return { lender, eligible: false, rating: 0, rawScore: 0, summary: aprReason };
+  }
   const principal = coveredAmount * (1 + lender.originationFeePercent / 100);
   const payment = monthlyPayment(principal, apr, years);
   const totalCost = payment * years * 12;

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="green">
+<html lang="en" data-finish="plain">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -18,7 +18,26 @@
       <div class="settings">
         <div class="themes" role="group" aria-labelledby="themes-label">
           <span id="themes-label" class="themes-label" data-i18n="header.theme">Theme color:</span>
-          <div id="theme-buttons" class="theme-buttons"></div>
+          <input id="hue-slider" class="hue-slider" type="range" min="0" max="359" step="1" value="145" dir="ltr" />
+          <div class="theme-buttons">
+            <button type="button" class="theme-button" data-base="black"></button>
+            <button type="button" class="theme-button" data-base="gray"></button>
+          </div>
+        </div>
+        <div class="choice-group" role="group" aria-labelledby="finish-label">
+          <span id="finish-label" class="themes-label" data-i18n="header.finish">Finish:</span>
+          <div class="choice-buttons">
+            <button type="button" class="finish-button" data-finish="plain" data-i18n="finish.plain">Plain</button>
+            <button type="button" class="finish-button" data-finish="metallic" data-i18n="finish.metallic">Metallic</button>
+            <button type="button" class="finish-button" data-finish="neon" data-i18n="finish.neon">Neon</button>
+          </div>
+        </div>
+        <div class="choice-group" role="group" aria-labelledby="mode-label">
+          <span id="mode-label" class="themes-label" data-i18n="header.mode">Page:</span>
+          <div class="choice-buttons">
+            <button type="button" class="mode-button" data-mode="light" data-i18n="mode.light">Light</button>
+            <button type="button" class="mode-button" data-mode="dark" data-i18n="mode.dark">Dark</button>
+          </div>
         </div>
         <label class="language">
           <span class="themes-label" data-i18n="header.language">Language:</span>
@@ -35,7 +54,7 @@
           </li>
           <li data-i18n="guide.step3">Scroll to the recommendations: each lender is rated out of 10, and "View loan" opens its website.</li>
         </ol>
-        <p class="guide-note" data-i18n="guide.note">The color circles above only change how the app looks.</p>
+        <p class="guide-note" data-i18n="guide.note">The color slider and finishes above only change how the app looks.</p>
         <button id="hide-guide" class="guide-dismiss" type="button" data-i18n="guide.dismiss">Got it</button>
       </section>
     </header>
@@ -74,6 +93,22 @@
             data-i18n-placeholder="form.creditScorePlaceholder"
           />
         </label>
+        <fieldset class="apr-field">
+          <legend>
+            <span data-i18n="form.apr">APR you'd accept</span>
+            <span class="optional" data-i18n="form.aprHint">(optional, %)</span>
+          </legend>
+          <div class="apr-controls">
+            <label>
+              <span data-i18n="form.aprLowest">Lowest</span>
+              <input id="apr-min" type="number" inputmode="decimal" min="0" max="30" step="0.1" />
+            </label>
+            <label>
+              <span data-i18n="form.aprHighest">Highest</span>
+              <input id="apr-max" type="number" inputmode="decimal" min="0" max="30" step="0.1" />
+            </label>
+          </div>
+        </fieldset>
         <label>
           <span data-i18n="form.residency">Citizenship or residency</span>
           <select id="residency">
@@ -93,6 +128,18 @@
           <input id="has-cosigner" type="checkbox" />
           <span data-i18n="form.cosigner">I have a cosigner with good credit</span>
         </label>
+        <div id="cosigner-details" class="cosigner-details" hidden>
+          <label>
+            <span data-i18n="form.cosignerScore">Cosigner's credit score</span>
+            <span class="optional" data-i18n="form.creditScoreHint">(optional, 300–850)</span>
+            <input id="cosigner-score" type="number" inputmode="numeric" min="300" max="850" />
+          </label>
+          <label>
+            <span data-i18n="form.cosignerCapital">Cosigner's cash and assets</span>
+            <span class="optional" data-i18n="form.cosignerCapitalHint">(optional, $)</span>
+            <input id="cosigner-capital" type="number" inputmode="numeric" min="0" step="100" />
+          </label>
+        </div>
         <ul id="errors" class="errors" role="alert"></ul>
         <p class="disclaimer" data-i18n="form.disclaimer">
           Rates are built-in sample data for comparison, not live quotes or financial advice. Check each lender for
@@ -136,6 +183,7 @@
     </section>
 
     <script src="src/i18n.js"></script>
+    <script src="src/colors.js"></script>
     <script src="src/loans.js"></script>
     <script src="src/saved.js"></script>
     <script src="src/share.js"></script>

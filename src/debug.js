@@ -18,9 +18,13 @@ function describeInputs(inputs) {
     `${loanLogic.formatMoney(inputs.monthlyBudget)}/month budget`,
     inputs.years === 1 ? "1 year" : `${inputs.years} years`,
     `credit score: ${inputs.creditScore ?? "not given"}`,
+    `APR filter: ${inputs.minApr ?? "any"}% to ${inputs.maxApr ?? "any"}%`,
     `residency: ${inputs.residency}`,
     `state: ${inputs.state ?? "not given"}`,
-    `cosigner: ${inputs.hasCosigner ? "yes" : "no"}`,
+    inputs.hasCosigner
+      ? `cosigner: yes (score: ${inputs.cosignerCreditScore ?? "not given"}, `
+        + `cash and assets: ${inputs.cosignerCapital === null ? "not given" : loanLogic.formatMoney(inputs.cosignerCapital)})`
+      : "cosigner: no",
   ].join(", ");
 }
 
