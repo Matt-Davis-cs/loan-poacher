@@ -355,7 +355,8 @@ h2 {
 }
 
 #results,
-#saved-results {
+#saved-results,
+#preset-list {
   display: grid;
   gap: 14px;
 }
@@ -801,4 +802,61 @@ h2 {
   to {
     opacity: 0;
   }
+}
+
+/* The Saved filters tab: a box to name and save the form's filters, then the saved presets. */
+.preset-save {
+  margin-bottom: 14px;
+}
+
+.preset-save label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.preset-save-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preset-save input {
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 10px;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.preset-save input:focus {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 1px;
+}
+
+.preset-note {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.preset-status {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+
+.preset-status:empty {
+  display: none;
+}
+
+.preset-name {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.preset-summary {
+  margin: 0 0 12px;
 }

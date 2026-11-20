@@ -14,6 +14,7 @@ const pageStorage = {
 let savedLoanIds = readSavedLoanIds(pageStorage);
 let loanComments = readLoanComments(pageStorage);
 let receivedLoanIds = readReceivedLoanIds(pageStorage);
+let filterPresets = readFilterPresets(pageStorage);
 // The ?debug=1 address shows how each rating was scored, for investigating a rating someone reports as wrong.
 const DEBUG_MODE = new URLSearchParams(location.search).get("debug") === "1";
 // Which repayment graphs are open, so they stay open when the form changes and the cards are redrawn.
@@ -53,20 +54,26 @@ function readInputs() {
 }
 
 // Shows the cosigner's details only while "I have a cosigner" is ticked.
+function showCosignerDetails() {
+  document.getElementById("cosigner-details").hidden = !document.getElementById("has-cosigner").checked;
+}
+
 function setUpCosigner() {
-  const checkbox = document.getElementById("has-cosigner");
-  const details = document.getElementById("cosigner-details");
-  const showDetails = () => {
-    details.hidden = !checkbox.checked;
-  };
-  checkbox.addEventListener("change", showDetails);
-  showDetails();
+  document.getElementById("has-cosigner").addEventListener("change", showCosignerDetails);
+  showCosignerDetails();
 }
 
 // Shows the chosen term next to its label, like "10 years"; blank while the typed term is not a usable number.
 function showTerm() {
   const years = readNumber("years-box");
   document.getElementById("years-text").textContent = Number.isInteger(years) && years >= 1 ? formatYears(years) : "";
+}
+
+// Moves the term slider to the typed term, when the typed term is a whole number the slider can show.
+function syncTermSlider() {
+  const slider = document.getElementById("years");
+  const years = readNumber("years-box");
+  if (Number.isInteger(years) && years >= Number(slider.min) && years <= Number(slider.max)) slider.value = String(years);
 }
 
 // Keeps the slider and the typed term in step; the typed box is what the recommendations read.
@@ -78,8 +85,7 @@ function setUpTerm() {
     showTerm();
   });
   box.addEventListener("input", () => {
-    const years = readNumber("years-box");
-    if (Number.isInteger(years) && years >= Number(slider.min) && years <= Number(slider.max)) slider.value = String(years);
+    syncTermSlider();
     showTerm();
   });
 }
@@ -380,19 +386,145 @@ function setUpDebugPanel() {
   });
 }
 
-function setUpTabs() {
-  const tabs = [
-    [document.getElementById("recommendations-tab"), document.getElementById("recommendations-panel")],
-    [document.getElementById("saved-tab"), document.getElementById("saved-panel")],
-  ];
-  for (const [tab] of tabs) {
-    tab.addEventListener("click", () => {
-      for (const [otherTab, otherPanel] of tabs) {
-        otherTab.setAttribute("aria-selected", String(otherTab === tab));
-        otherPanel.hidden = otherTab !== tab;
-      }
-    });
+const TAB_IDS = ["recommendations-tab", "saved-tab", "filters-tab"];
+
+// Shows one tab's panel and hides the others.
+function selectTab(tabId) {
+  for (const id of TAB_IDS) {
+    const tab = document.getElementById(id);
+    tab.setAttribute("aria-selected", String(id === tabId));
+    document.getElementById(tab.getAttribute("aria-controls")).hidden = id !== tabId;
   }
+}
+
+function setUpTabs() {
+  for (const id of TAB_IDS) {
+    document.getElementById(id).addEventListener("click", () => selectTab(id));
+  }
+}
+
+// A one-line reminder of what a saved preset holds, like "$25,000, $300/month, 15 years · APR 0–9% · Massachusetts".
+function presetSummary(filters) {
+  const parts = [
+    t("presets.summary", {
+      amount: formatMoney(filters.amount),
+      budget: formatMoney(filters.monthlyBudget),
+      years: formatYears(filters.years),
+    }),
+  ];
+  if (filters.minApr !== null || filters.maxApr !== null) {
+    parts.push(t("presets.apr", { range: `${filters.minApr ?? MIN_APR_FILTER}–${filters.maxApr ?? MAX_APR_FILTER}%` }));
+  }
+  const residency = [...document.getElementById("residency").options].find((option) => option.value === filters.residency);
+  if (filters.residency !== "citizen" && residency !== undefined) parts.push(residency.textContent);
+  if (filters.state !== null && filters.state in US_STATES) parts.push(US_STATES[filters.state]);
+  if (filters.hasCosigner) parts.push(t("presets.cosigner"));
+  return parts.join(" · ");
+}
+
+function showPresetStatus(text) {
+  document.getElementById("preset-status").textContent = text;
+}
+
+// Fills the form from a preset, keeps the term slider, cosigner details, and state note in step with it, updates the
+// recommendations, and shows them. The credit score and the cosigner's numbers are left as they are.
+function applyFilterPreset({ filters }) {
+  const setValue = (id, value) => {
+    document.getElementById(id).value = value === null ? "" : String(value);
+  };
+  setValue("amount", filters.amount);
+  setValue("monthly-budget", filters.monthlyBudget);
+  setValue("years-box", filters.years);
+  setValue("apr-min", filters.minApr);
+  setValue("apr-max", filters.maxApr);
+  setValue("residency", filters.residency);
+  setValue("state", filters.state);
+  document.getElementById("has-cosigner").checked = filters.hasCosigner;
+  syncTermSlider();
+  showTerm();
+  showCosignerDetails();
+  update();
+  selectTab("recommendations-tab");
+  document.getElementById("recommendations-tab").focus();
+}
+
+function renderFilterPreset(preset, index) {
+  const item = document.createElement("div");
+  item.className = "card preset";
+  item.setAttribute("role", "group");
+  const name = document.createElement("h3");
+  name.className = "preset-name";
+  name.id = `preset-name-${index}`;
+  name.textContent = preset.name;
+  item.setAttribute("aria-labelledby", name.id);
+
+  const summary = document.createElement("p");
+  summary.className = "preset-summary";
+  summary.textContent = presetSummary(preset.filters);
+
+  const apply = document.createElement("button");
+  apply.type = "button";
+  apply.className = "save-button";
+  apply.textContent = t("presets.apply");
+  apply.addEventListener("click", () => applyFilterPreset(preset));
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "graph-button";
+  remove.textContent = t("presets.delete");
+  remove.addEventListener("click", () => {
+    filterPresets = deleteFilterPreset(pageStorage, filterPresets, preset.name);
+    renderFilterPresets();
+    showPresetStatus(t("presets.deleted", { name: preset.name }));
+    document.getElementById("preset-name").focus();
+  });
+
+  const actions = document.createElement("div");
+  actions.className = "card-actions";
+  actions.append(apply, remove);
+  item.append(name, summary, actions);
+  return item;
+}
+
+// Fills the Saved filters tab and its count, like "Saved filters (2/5)".
+function renderFilterPresets() {
+  document.getElementById("filters-tab").textContent = t("tabs.filters", {
+    count: filterPresets.length,
+    max: MAX_FILTER_PRESETS,
+  });
+  const list = document.getElementById("preset-list");
+  if (filterPresets.length === 0) {
+    list.replaceChildren(emptyMessage(t("presets.empty")));
+  } else {
+    list.replaceChildren(...filterPresets.map(renderFilterPreset));
+  }
+}
+
+// Saves what is in the form under the typed name (or the next "Filters 1", "Filters 2"...), unless the form has an
+// error, and says what happened: saved, updated, or saved in place of the oldest.
+function saveCurrentFilters() {
+  const inputs = readInputs();
+  if (validateInputs(inputs).length > 0) {
+    showPresetStatus(t("presets.fixForm"));
+    return;
+  }
+  const nameBox = document.getElementById("preset-name");
+  const name =
+    cleanPresetName(nameBox.value) || unusedPresetName(filterPresets, (number) => t("presets.defaultName", { number }));
+  const result = saveFilterPreset(pageStorage, filterPresets, name, presetFilters(inputs));
+  filterPresets = result.presets;
+  nameBox.value = "";
+  renderFilterPresets();
+  if (result.updated) showPresetStatus(t("presets.updated", { name: result.name }));
+  else if (result.replaced !== null) showPresetStatus(t("presets.replaced", { name: result.name, oldest: result.replaced }));
+  else showPresetStatus(t("presets.saved", { name: result.name }));
+}
+
+function setUpFilterPresets() {
+  document.getElementById("save-preset").addEventListener("click", saveCurrentFilters);
+  document.getElementById("preset-name").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") saveCurrentFilters();
+  });
 }
 
 // The color the page is painted with: a spot on the color wheel (or Black or Gray), a finish, and a light or dark page.
@@ -494,6 +626,8 @@ function applyLanguage(language) {
   showTerm();
   labelThemeButtons();
   showColorChoice();
+  renderFilterPresets();
+  showPresetStatus("");
   update();
   try {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, getLanguage());
@@ -556,5 +690,6 @@ setUpTerm();
 setUpDebugPanel();
 setUpGuide();
 setUpTabs();
+setUpFilterPresets();
 setUpLanguages();
 document.getElementById("loan-form").addEventListener("input", update);

@@ -163,6 +163,9 @@
           <button id="saved-tab" class="tab" type="button" role="tab" aria-selected="false" aria-controls="saved-panel">
             Saved loans (0)
           </button>
+          <button id="filters-tab" class="tab" type="button" role="tab" aria-selected="false" aria-controls="filters-panel">
+            Saved filters (0/5)
+          </button>
         </div>
         <div id="recommendations-panel" role="tabpanel" aria-labelledby="recommendations-tab" aria-live="polite">
           <p id="location-note" class="location-note" hidden></p>
@@ -170,6 +173,21 @@
         </div>
         <div id="saved-panel" role="tabpanel" aria-labelledby="saved-tab" aria-live="polite" hidden>
           <div id="saved-results"></div>
+        </div>
+        <div id="filters-panel" role="tabpanel" aria-labelledby="filters-tab" hidden>
+          <div class="card preset-save">
+            <label for="preset-name" data-i18n="presets.nameLabel">Name these filters</label>
+            <div class="preset-save-row">
+              <input id="preset-name" type="text" maxlength="40" autocomplete="off" data-i18n-placeholder="presets.namePlaceholder" />
+              <button id="save-preset" class="save-button" type="button" data-i18n="presets.save">Save current filters</button>
+            </div>
+            <p class="preset-note" data-i18n="presets.note">
+              Saves what's in Your situation, except credit scores and the cosigner's cash. Keeps up to 5: saving a 6th
+              replaces the oldest.
+            </p>
+            <p id="preset-status" class="preset-status" role="status"></p>
+          </div>
+          <div id="preset-list"></div>
         </div>
       </section>
     </main>
@@ -186,6 +204,7 @@
     <script src="src/colors.js"></script>
     <script src="src/loans.js"></script>
     <script src="src/saved.js"></script>
+    <script src="src/presets.js"></script>
     <script src="src/share.js"></script>
     <script src="src/celebrate.js"></script>
     <script src="src/graph.js"></script>
