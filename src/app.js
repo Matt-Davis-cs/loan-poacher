@@ -52,6 +52,11 @@ function readInputs() {
     cosignerCapital: readNumber("cosigner-capital"),
     annualIncome: readNumber("annual-income"),
     incomeShare: readNumber("income-share"),
+    incarceratedNow: document.getElementById("history-incarcerated").checked,
+    pastSentence: document.getElementById("history-past-sentence").checked,
+    federalDefault: document.getElementById("history-federal-default").checked,
+    recentBankruptcy: document.getElementById("history-bankruptcy").checked,
+    otherDebtPayments: readNumber("other-debts"),
   };
 }
 

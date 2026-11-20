@@ -14,6 +14,12 @@ const MAX_APR_FILTER = 30;
 
 // The yearly income a student can enter, and the share of it (in percent) they can put toward a loan.
 const MAX_ANNUAL_INCOME = 10000000;
+// The most a student can enter for their other monthly debt payments.
+const MAX_OTHER_DEBT_PAYMENTS = 1000000;
+// Private lenders often want every monthly debt payment, this loan's included, to stay under this share of income;
+// past it a private loan starts losing a point, and it loses the whole point at DEBT_TO_INCOME_FULL_CUT.
+const DEBT_TO_INCOME_LIMIT = 0.36;
+const DEBT_TO_INCOME_FULL_CUT = 0.5;
 const MIN_INCOME_SHARE = 1;
 const MAX_INCOME_SHARE = 100;
 
@@ -262,6 +268,7 @@ function validateInputs({
   cosignerCapital = null,
   annualIncome = null,
   incomeShare = null,
+  otherDebtPayments = null,
 }) {
   const errors = [];
   if (!Number.isFinite(amount) || amount < 500 || amount > 200000) {
@@ -299,6 +306,10 @@ function validateInputs({
     && (!Number.isFinite(incomeShare) || incomeShare < MIN_INCOME_SHARE || incomeShare > MAX_INCOME_SHARE)) {
     errors.push(i18n.t("error.incomeShare"));
   }
+  if (otherDebtPayments !== null
+    && (!Number.isFinite(otherDebtPayments) || otherDebtPayments < 0 || otherDebtPayments > MAX_OTHER_DEBT_PAYMENTS)) {
+    errors.push(i18n.t("error.otherDebts"));
+  }
   return errors;
 }
 
@@ -325,6 +336,47 @@ function ineligibilityReason(lender, inputs, score) {
   return null;
 }
 
+// Why Your history rules out a federal loan, or null: federal student loans aren't available while serving a sentence
+// in a correctional facility, or while a federal student loan is in default.
+function historyReason(lender, inputs) {
+  if (lender.type !== "Federal") return null;
+  if (inputs.incarceratedNow) return i18n.t("reason.incarcerated");
+  if (inputs.federalDefault) return i18n.t("reason.federalDefault");
+  return null;
+}
+
+// Every monthly debt payment, this loan's required payment included, as a share of monthly income; null without both.
+function debtToIncomeRatio({ annualIncome = null, otherDebtPayments = null }, requiredPayment) {
+  if (!Number.isFinite(annualIncome) || annualIncome <= 0 || !Number.isFinite(otherDebtPayments)) return null;
+  return (otherDebtPayments + requiredPayment) / (annualIncome / 12);
+}
+
+// What Your history does to an available loan: rating points taken off, and the notes that explain them. Federal
+// loans never lose points (a past sentence only gets a note saying so). Private and state loans lose 1 point for a
+// sentence, past or present; up to 1 point once debts pass DEBT_TO_INCOME_LIMIT of income; and 1 point for a recent
+// bankruptcy, unless the student's own credit score was entered, since it already reflects the bankruptcy.
+function historyEffects(lender, inputs, requiredPayment) {
+  if (lender.type === "Federal") {
+    return { cut: 0, notes: inputs.pastSentence ? [i18n.t("summary.recordFederal")] : [] };
+  }
+  let cut = 0;
+  const notes = [];
+  if (inputs.pastSentence || inputs.incarceratedNow) {
+    cut += 1;
+    notes.push(i18n.t("summary.recordPrivate"));
+  }
+  const debtToIncome = debtToIncomeRatio(inputs, requiredPayment);
+  if (debtToIncome !== null && debtToIncome > DEBT_TO_INCOME_LIMIT) {
+    cut += clamp((debtToIncome - DEBT_TO_INCOME_LIMIT) / (DEBT_TO_INCOME_FULL_CUT - DEBT_TO_INCOME_LIMIT), 0, 1);
+    notes.push(i18n.t("summary.debtToIncome", { percent: Math.round(debtToIncome * 100) }));
+  }
+  if (inputs.recentBankruptcy) {
+    if ((inputs.creditScore ?? null) === null) cut += 1;
+    notes.push(i18n.t("summary.bankruptcy"));
+  }
+  return { cut, notes };
+}
+
 // Why this loan's estimated APR is outside the range the student set, or null if it is inside (or no range is set).
 function aprFilterReason(apr, { minApr = null, maxApr = null }) {
   if (maxApr !== null && apr > maxApr) {
@@ -343,6 +395,11 @@ function evaluateLender(lender, inputs) {
   const reason = ineligibilityReason(lender, inputs, score);
   if (reason !== null) {
     return { lender, eligible: false, rating: 0, rawScore: 0, summary: reason };
+  }
+  const privateReason = historyReason(lender, inputs);
+  if (privateReason !== null) {
+    // fromHistory keeps the ?debug=1 report from showing the reason, which would reveal the answer.
+    return { lender, eligible: false, rating: 0, rawScore: 0, summary: privateReason, fromHistory: true };
   }
 
   const coveredAmount = Math.min(amount, lender.maxAmount);
@@ -379,7 +436,8 @@ function evaluateLender(lender, inputs) {
     RATING_WEIGHTS.fee * feeScore;
   // Covering only part of the amount already counts against affordability above, so this extra cut stays small.
   const coverageMultiplier = 0.8 + 0.2 * coverage;
-  const rawScore = 10 * weighted * coverageMultiplier;
+  const history = historyEffects(lender, inputs, requiredPayment);
+  const rawScore = Math.max(0, 10 * weighted * coverageMultiplier - history.cut);
 
   const parts = [];
   const rateLabel = lender.aprMin === lender.aprMax ? "fixed" : score === null ? "typical" : "estimated";
@@ -402,6 +460,7 @@ function evaluateLender(lender, inputs) {
   if (lender.minCreditScore !== null && score === null) {
     parts.push(i18n.t("summary.needsCreditCheck"));
   }
+  parts.push(...history.notes);
   parts.push(i18n.t("summary.perks", { perks: i18n.t(`perks.${lender.id}`) }));
 
   return {
@@ -427,6 +486,7 @@ function evaluateLender(lender, inputs) {
       fromIncome,
       coverage,
       coverageMultiplier,
+      historyCut: history.cut,
     },
     summary: parts.join(i18n.t("summary.separator")),
   };

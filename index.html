@@ -156,6 +156,33 @@
             <input id="cosigner-capital" type="number" inputmode="numeric" min="0" step="100" />
           </label>
         </div>
+        <details id="history" class="history">
+          <summary data-i18n="history.title">Your history (optional)</summary>
+          <p class="history-note" data-i18n="history.note">
+            Answer only what you want to. It's used only to check which loans fit you, and it's never saved or shared.
+          </p>
+          <label class="checkbox">
+            <input id="history-incarcerated" type="checkbox" />
+            <span data-i18n="history.incarcerated">I'm currently serving a sentence in a correctional facility</span>
+          </label>
+          <label class="checkbox">
+            <input id="history-past-sentence" type="checkbox" />
+            <span data-i18n="history.pastSentence">I've served a sentence in the past</span>
+          </label>
+          <label class="checkbox">
+            <input id="history-federal-default" type="checkbox" />
+            <span data-i18n="history.federalDefault">I have a federal student loan in default</span>
+          </label>
+          <label class="checkbox">
+            <input id="history-bankruptcy" type="checkbox" />
+            <span data-i18n="history.bankruptcy">I've filed for bankruptcy in the last 5 years</span>
+          </label>
+          <label>
+            <span data-i18n="history.otherDebts">Other debt payments per month ($)</span>
+            <span class="optional" data-i18n="history.otherDebtsHint">(credit cards, car, other loans)</span>
+            <input id="other-debts" type="number" inputmode="numeric" min="0" step="10" />
+          </label>
+        </details>
         <ul id="errors" class="errors" role="alert"></ul>
         <p class="disclaimer" data-i18n="form.disclaimer">
           Rates are built-in sample data for comparison, not live quotes or financial advice. Check each lender for

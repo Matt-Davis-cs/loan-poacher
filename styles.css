@@ -860,3 +860,30 @@ h2 {
 .preset-summary {
   margin: 0 0 12px;
 }
+
+/* Your history: closed until opened, and kept visibly apart from the rest of the form. */
+.history {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.history > summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.history[open] > summary {
+  margin-bottom: 8px;
+}
+
+.history-note {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.history label:last-child {
+  margin-bottom: 0;
+}

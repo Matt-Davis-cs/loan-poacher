@@ -12,6 +12,11 @@ function formatPercent(fraction) {
   return `${Math.round(fraction * 100)}%`;
 }
 
+function historyGiven(inputs) {
+  return Boolean(inputs.incarceratedNow || inputs.pastSentence || inputs.federalDefault || inputs.recentBankruptcy)
+    || (inputs.otherDebtPayments ?? null) !== null;
+}
+
 function describeInputs(inputs) {
   return [
     `${loanLogic.formatMoney(inputs.amount)} this year`,
@@ -29,11 +34,13 @@ function describeInputs(inputs) {
       ? "income: not given"
       : `income: ${loanLogic.formatMoney(inputs.annualIncome)}/year, ${inputs.incomeShare}% toward loans `
         + `(${loanLogic.formatMoney((inputs.annualIncome * inputs.incomeShare) / 100 / 12)}/month)`,
+    `history: ${historyGiven(inputs) ? "given (answers are private and not shown)" : "not given"}`,
   ].join(", ");
 }
 
 function describeResult(result, place, inputs) {
   const heading = `#${place} ${result.lender.name} (${result.lender.type})`;
+  if (result.fromHistory) return `${heading}: 0/10, unavailable because of an answer in Your history`;
   if (!result.eligible) return `${heading}: 0/10, unavailable: ${result.summary}`;
 
   const { parts } = result;
@@ -50,7 +57,8 @@ function describeResult(result, place, inputs) {
       `${formatPercent(parts.budgetRatio)} of ${measure} (${formatPercent(parts.wholeAmountRatio)} for the whole amount)`,
     ...extraLine,
     `   affordability ${parts.affordability.toFixed(2)}, rate ${parts.rate.toFixed(2)}, ` +
-      `flexibility ${parts.flexibility.toFixed(2)}, fee ${parts.fee.toFixed(2)}, coverage cut ×${parts.coverageMultiplier.toFixed(2)}`,
+      `flexibility ${parts.flexibility.toFixed(2)}, fee ${parts.fee.toFixed(2)}, coverage cut ×${parts.coverageMultiplier.toFixed(2)}` +
+      (parts.historyCut > 0 ? `, Your history −${parts.historyCut.toFixed(2)}` : ""),
   ].join("\n");
 }
 
@@ -60,7 +68,8 @@ function debugReport(inputs, ranked) {
     "Loan Poacher debug report",
     `Entered: ${describeInputs(inputs)}`,
     `Score = 10 × (affordability × ${weights.affordability} + rate × ${weights.rate} + ` +
-      `flexibility × ${weights.flexibility} + fee × ${weights.fee}) × coverage cut; the rating is the score rounded.`,
+      `flexibility × ${weights.flexibility} + fee × ${weights.fee}) × coverage cut − any Your history cut (never below 0); ` +
+      "the rating is the score rounded.",
     "Affordability is 1 while the required payment for the whole amount is at most 70% of the budget (or of the " +
       "income share, when that is larger), and 0 at 150% or more.",
     "",
