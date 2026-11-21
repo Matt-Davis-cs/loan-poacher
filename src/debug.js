@@ -24,6 +24,7 @@ function describeInputs(inputs) {
     inputs.years === 1 ? "1 year" : `${inputs.years} years`,
     `credit score: ${inputs.creditScore ?? "not given"}`,
     `APR filter: ${inputs.minApr ?? "any"}% to ${inputs.maxApr ?? "any"}%`,
+    `rate type: ${inputs.rateType ?? "any"}`,
     `residency: ${inputs.residency}`,
     `state: ${inputs.state ?? "not given"}`,
     inputs.hasCosigner
@@ -53,7 +54,7 @@ function describeResult(result, place, inputs) {
     : [];
   return [
     `${heading}: ${result.rating}/10 (score ${result.rawScore.toFixed(2)})`,
-    `   APR ${result.apr.toFixed(2)}%, ${coverageText}, required payment ${formatCents(result.requiredPayment)}/month = ` +
+    `   APR ${result.apr.toFixed(2)}% (${result.rateType}), ${coverageText}, required payment ${formatCents(result.requiredPayment)}/month = ` +
       `${formatPercent(parts.budgetRatio)} of ${measure} (${formatPercent(parts.wholeAmountRatio)} for the whole amount)`,
     ...extraLine,
     `   affordability ${parts.affordability.toFixed(2)}, rate ${parts.rate.toFixed(2)}, ` +

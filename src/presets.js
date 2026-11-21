@@ -16,6 +16,7 @@ const PRESET_DEFAULTS = {
   residency: "citizen",
   state: null,
   hasCosigner: false,
+  rateType: "any",
 };
 
 // The kind of value each part holds; anything else in storage falls back to the starting value.
@@ -28,6 +29,7 @@ const PRESET_FIELD_KINDS = {
   residency: "text",
   state: "text or blank",
   hasCosigner: "yes or no",
+  rateType: "text",
 };
 
 function isKind(value, kind) {

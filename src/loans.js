@@ -8,6 +8,10 @@ const i18n = typeof module !== "undefined" ? require("./i18n.js") : { t, formatY
 const MIN_YEARS = 1;
 const MAX_YEARS = 50;
 
+// The rate types a student can choose: Any (every loan at its fixed rate, as before), Fixed, or Variable.
+// Private lenders also offer variable rates (sample ranges in variableApr); Federal and state programs don't.
+const RATE_TYPES = ["any", "fixed", "variable"];
+
 // The APR range a student can set as a filter, in percent.
 const MIN_APR_FILTER = 0;
 const MAX_APR_FILTER = 30;
@@ -31,6 +35,7 @@ const LENDERS = [
     url: "https://studentaid.gov/understand-aid/types/loans/subsidized-unsubsidized",
     aprMin: 6.39,
     aprMax: 6.39,
+    variableApr: null,
     originationFeePercent: 1.057,
     minCreditScore: null,
     maxAmount: 7500,
@@ -44,6 +49,7 @@ const LENDERS = [
     url: "https://www.salliemae.com/student-loans/",
     aprMin: 4.5,
     aprMax: 15.5,
+    variableApr: { min: 3.7, max: 15.0 },
     originationFeePercent: 0,
     minCreditScore: 650,
     maxAmount: 150000,
@@ -57,6 +63,7 @@ const LENDERS = [
     url: "https://www.sofi.com/private-student-loans/",
     aprMin: 4.0,
     aprMax: 14.8,
+    variableApr: { min: 3.2, max: 14.3 },
     originationFeePercent: 0,
     minCreditScore: 650,
     maxAmount: 150000,
@@ -70,6 +77,7 @@ const LENDERS = [
     url: "https://www.collegeave.com/",
     aprMin: 4.1,
     aprMax: 16.0,
+    variableApr: { min: 3.3, max: 15.5 },
     originationFeePercent: 0,
     minCreditScore: 640,
     maxAmount: 150000,
@@ -83,6 +91,7 @@ const LENDERS = [
     url: "https://www.earnest.com/student-loans",
     aprMin: 4.0,
     aprMax: 16.5,
+    variableApr: { min: 3.2, max: 16.0 },
     originationFeePercent: 0,
     minCreditScore: 650,
     maxAmount: 150000,
@@ -96,6 +105,7 @@ const LENDERS = [
     url: "https://www.ascentfunding.com/",
     aprMin: 4.5,
     aprMax: 15.7,
+    variableApr: { min: 3.7, max: 15.2 },
     originationFeePercent: 0,
     minCreditScore: 540,
     maxAmount: 200000,
@@ -109,6 +119,7 @@ const LENDERS = [
     url: "https://www.citizensbank.com/student-loans/",
     aprMin: 4.2,
     aprMax: 15.9,
+    variableApr: { min: 3.4, max: 15.4 },
     originationFeePercent: 0,
     minCreditScore: 670,
     maxAmount: 150000,
@@ -124,6 +135,7 @@ const LENDERS = [
     url: "https://www.mefa.org/",
     aprMin: 4.6,
     aprMax: 8.5,
+    variableApr: null,
     originationFeePercent: 0,
     minCreditScore: 670,
     maxAmount: 150000,
@@ -138,6 +150,7 @@ const LENDERS = [
     url: "https://www.risla.com/",
     aprMin: 4.3,
     aprMax: 7.9,
+    variableApr: null,
     originationFeePercent: 0,
     minCreditScore: 680,
     maxAmount: 150000,
@@ -152,6 +165,7 @@ const LENDERS = [
     url: "https://www.hesaa.org/",
     aprMin: 4.9,
     aprMax: 8.2,
+    variableApr: null,
     originationFeePercent: 0,
     minCreditScore: 670,
     maxAmount: 150000,
@@ -166,6 +180,7 @@ const LENDERS = [
     url: "https://www.chesla.org/",
     aprMin: 4.5,
     aprMax: 7.6,
+    variableApr: null,
     originationFeePercent: 0,
     minCreditScore: 680,
     maxAmount: 150000,
@@ -402,9 +417,18 @@ function evaluateLender(lender, inputs) {
     return { lender, eligible: false, rating: 0, rawScore: 0, summary: privateReason, fromHistory: true };
   }
 
+  const rateType = RATE_TYPES.includes(inputs.rateType) ? inputs.rateType : "any";
+  // A lender without a variable range (Federal, state programs) only offers fixed rates.
+  const variableApr = lender.variableApr ?? null;
+  if (rateType === "variable" && variableApr === null) {
+    return { lender, eligible: false, rating: 0, rawScore: 0, summary: i18n.t("reason.fixedOnly") };
+  }
+  const usesVariable = rateType === "variable";
+  const rates = usesVariable ? { aprMin: variableApr.min, aprMax: variableApr.max } : lender;
+
   const coveredAmount = Math.min(amount, lender.maxAmount);
   const coverage = coveredAmount / amount;
-  const apr = estimateApr(lender, score);
+  const apr = estimateApr(rates, score);
   const aprReason = aprFilterReason(apr, inputs);
   if (aprReason !== null) {
     return { lender, eligible: false, rating: 0, rawScore: 0, summary: aprReason };
@@ -460,12 +484,18 @@ function evaluateLender(lender, inputs) {
   if (lender.minCreditScore !== null && score === null) {
     parts.push(i18n.t("summary.needsCreditCheck"));
   }
+  if (usesVariable) {
+    parts.push(i18n.t("summary.variableWarning"));
+  } else if (rateType === "any" && variableApr !== null) {
+    parts.push(i18n.t("summary.alsoVariable", { apr: variableApr.min.toFixed(2) }));
+  }
   parts.push(...history.notes);
   parts.push(i18n.t("summary.perks", { perks: i18n.t(`perks.${lender.id}`) }));
 
   return {
     lender,
     eligible: true,
+    rateType: usesVariable ? "variable" : "fixed",
     apr,
     payment,
     requiredPayment,

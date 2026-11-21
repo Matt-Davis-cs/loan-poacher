@@ -33,6 +33,7 @@ function tourLabels() {
   return {
     situation: t("form.title"),
     apr: t("form.apr"),
+    rateType: t("form.rateType"),
     income: t("form.income"),
     history: plainLabel(t("history.title")),
     recommendations: t("results.title"),

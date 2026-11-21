@@ -44,6 +44,7 @@ function readInputs() {
     creditScore: readNumber("credit-score"),
     minApr: readNumber("apr-min"),
     maxApr: readNumber("apr-max"),
+    rateType: document.getElementById("rate-type").value,
     residency: document.getElementById("residency").value,
     state: document.getElementById("state").value || null,
     hasCosigner: document.getElementById("has-cosigner").checked,
@@ -247,6 +248,12 @@ function renderCard(result, isBest, inSavedTab = false) {
   tag.className = "tag";
   tag.textContent = t(`type.${result.lender.type}`);
   title.append(" ", tag);
+  if (result.eligible) {
+    const rate = document.createElement("span");
+    rate.className = "tag rate";
+    rate.textContent = t(`tag.${result.rateType}`);
+    title.append(" ", rate);
+  }
   if (isBest) {
     const best = document.createElement("span");
     best.className = "tag best";
@@ -423,6 +430,7 @@ function presetSummary(filters) {
   }
   const residency = [...document.getElementById("residency").options].find((option) => option.value === filters.residency);
   if (filters.residency !== "citizen" && residency !== undefined) parts.push(residency.textContent);
+  if (filters.rateType === "fixed" || filters.rateType === "variable") parts.push(t(`tag.${filters.rateType}`));
   if (filters.state !== null && filters.state in US_STATES) parts.push(US_STATES[filters.state]);
   if (filters.hasCosigner) parts.push(t("presets.cosigner"));
   return parts.join(" · ");
@@ -443,6 +451,7 @@ function applyFilterPreset({ filters }) {
   setValue("years-box", filters.years);
   setValue("apr-min", filters.minApr);
   setValue("apr-max", filters.maxApr);
+  setValue("rate-type", filters.rateType);
   setValue("residency", filters.residency);
   setValue("state", filters.state);
   document.getElementById("has-cosigner").checked = filters.hasCosigner;
