@@ -3,7 +3,6 @@
 const COLOR_STORAGE_KEY = "loan-poacher-colors";
 // Where the theme was kept before the color slider; read once so an old choice carries over, then removed.
 const OLD_THEME_STORAGE_KEY = "loan-poacher-theme";
-const GUIDE_DISMISSED_KEY = "loan-poacher-guide-dismissed";
 const LANGUAGE_STORAGE_KEY = "loan-poacher-language";
 
 // Reaches localStorage only when used, so a blocked storage throws inside saved.js's try blocks.
@@ -636,6 +635,7 @@ function applyLanguage(language) {
   renderFilterPresets();
   showPresetStatus("");
   update();
+  refreshTour();
   try {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, getLanguage());
   } catch {
@@ -659,43 +659,13 @@ function setUpLanguages() {
 }
 
 // Shows the guide on a first visit; once dismissed it stays hidden until "How it works" is clicked.
-function setUpGuide() {
-  const guide = document.getElementById("guide");
-  const toggle = document.getElementById("show-guide");
-  const setVisible = (visible) => {
-    guide.hidden = !visible;
-    toggle.setAttribute("aria-expanded", String(visible));
-  };
-
-  let dismissed = false;
-  try {
-    dismissed = localStorage.getItem(GUIDE_DISMISSED_KEY) === "true";
-  } catch {
-    // Without storage the guide simply shows on every visit.
-  }
-  setVisible(!dismissed);
-
-  toggle.addEventListener("click", () => {
-    setVisible(true);
-    guide.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  });
-  document.getElementById("hide-guide").addEventListener("click", () => {
-    setVisible(false);
-    try {
-      localStorage.setItem(GUIDE_DISMISSED_KEY, "true");
-    } catch {
-      // The guide still hides for this visit.
-    }
-  });
-}
-
 setUpColors();
 prepareCheer();
 setUpStates();
 setUpCosigner();
 setUpTerm();
 setUpDebugPanel();
-setUpGuide();
+setUpTour();
 setUpTabs();
 setUpFilterPresets();
 setUpLanguages();

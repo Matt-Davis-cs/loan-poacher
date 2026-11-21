@@ -44,18 +44,17 @@
           <select id="language"></select>
         </label>
       </div>
-      <section id="guide" class="guide" aria-labelledby="guide-title" hidden>
-        <h2 id="guide-title" data-i18n="guide.title">How Loan Poacher works</h2>
-        <ol>
-          <li data-i18n="guide.step1">Enter how much you need to borrow and the monthly payment you can afford.</li>
-          <li data-i18n="guide.step2">
-            Add optional details (credit score, citizenship, state, cosigner) for more personal results. Results
-            update as you type.
-          </li>
-          <li data-i18n="guide.step3">Scroll to the recommendations: each lender is rated out of 10, and "View loan" opens its website.</li>
-        </ol>
-        <p class="guide-note" data-i18n="guide.note">The color slider and finishes above only change how the app looks.</p>
-        <button id="hide-guide" class="guide-dismiss" type="button" data-i18n="guide.dismiss">Got it</button>
+      <section id="guide" class="tour" aria-labelledby="guide-title" hidden>
+        <div class="tour-header">
+          <h2 id="guide-title" data-i18n="guide.title">How Loan Poacher works</h2>
+          <span id="tour-counter" class="tour-counter"></span>
+        </div>
+        <p id="tour-text" class="tour-text" aria-live="polite"></p>
+        <div class="tour-actions">
+          <button id="tour-skip" class="tour-skip" type="button" data-i18n="tour.skip">Skip tour</button>
+          <button id="tour-back" class="graph-button" type="button" data-i18n="tour.back">Back</button>
+          <button id="tour-next" class="guide-dismiss" type="button">Next</button>
+        </div>
       </section>
     </header>
 
@@ -70,7 +69,7 @@
           <span data-i18n="form.monthlyBudget">Monthly payment you can afford</span>
           <input id="monthly-budget" type="number" inputmode="numeric" min="1" step="10" value="150" />
         </label>
-        <fieldset class="pair-field">
+        <fieldset id="income-field" class="pair-field">
           <legend>
             <span data-i18n="form.income">Your income</span>
             <span class="optional" data-i18n="form.optional">(optional)</span>
@@ -252,6 +251,7 @@
     <script src="src/celebrate.js"></script>
     <script src="src/graph.js"></script>
     <script src="src/debug.js"></script>
+    <script src="src/tour.js"></script>
     <script src="src/app.js"></script>
   </body>
 </html>
