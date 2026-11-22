@@ -41,6 +41,7 @@ function tourLabels() {
     filtersTab: plainLabel(t("tabs.filters", { count: "", max: "" })),
     save: t("card.save"),
     graph: t("graph.show"),
+    moreDetails: t("card.moreDetails"),
     gotIt: t("received.label"),
     theme: plainLabel(t("header.theme")),
     finish: plainLabel(t("header.finish")),

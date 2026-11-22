@@ -378,22 +378,22 @@ function debtToIncomeRatio({ annualIncome = null, otherDebtPayments = null }, re
 // bankruptcy, unless the student's own credit score was entered, since it already reflects the bankruptcy.
 function historyEffects(lender, inputs, requiredPayment) {
   if (lender.type === "Federal") {
-    return { cut: 0, notes: inputs.pastSentence ? [i18n.t("summary.recordFederal")] : [] };
+    return { cut: 0, notes: inputs.pastSentence ? [{ kind: "info", text: i18n.t("summary.recordFederal") }] : [] };
   }
   let cut = 0;
   const notes = [];
   if (inputs.pastSentence || inputs.incarceratedNow) {
     cut += 1;
-    notes.push(i18n.t("summary.recordPrivate"));
+    notes.push({ kind: "record", text: i18n.t("summary.recordPrivate") });
   }
   const debtToIncome = debtToIncomeRatio(inputs, requiredPayment);
   if (debtToIncome !== null && debtToIncome > DEBT_TO_INCOME_LIMIT) {
     cut += clamp((debtToIncome - DEBT_TO_INCOME_LIMIT) / (DEBT_TO_INCOME_FULL_CUT - DEBT_TO_INCOME_LIMIT), 0, 1);
-    notes.push(i18n.t("summary.debtToIncome", { percent: Math.round(debtToIncome * 100) }));
+    notes.push({ kind: "debt", text: i18n.t("summary.debtToIncome", { percent: Math.round(debtToIncome * 100) }) });
   }
   if (inputs.recentBankruptcy) {
     if ((inputs.creditScore ?? null) === null) cut += 1;
-    notes.push(i18n.t("summary.bankruptcy"));
+    notes.push({ kind: "bankruptcy", text: i18n.t("summary.bankruptcy") });
   }
   return { cut, notes };
 }
@@ -472,38 +472,41 @@ function evaluateLender(lender, inputs) {
   const uncappedScore = Math.max(0, 10 * weighted * coverageMultiplier - history.cut);
   const rawScore = overBudgetCap ? (uncappedScore * OVER_BUDGET_CAP) / 10 : uncappedScore;
 
+  // Each sentence of the summary, with its kind so the card can show the most serious one up front.
   const parts = [];
+  const say = (kind, key, params) => parts.push({ kind, text: i18n.t(key, params) });
   const rateLabel = lender.aprMin === lender.aprMax ? "fixed" : score === null ? "typical" : "estimated";
   const paidOffYears = balances.length - 1;
-  parts.push(i18n.t(`summary.rate.${rateLabel}`, { apr: apr.toFixed(2), payment: formatMoney(payment), term: i18n.formatYears(paidOffYears) }));
+  say("rate", `summary.rate.${rateLabel}`, { apr: apr.toFixed(2), payment: formatMoney(payment), term: i18n.formatYears(paidOffYears) });
   if (paysExtra) {
-    parts.push(i18n.t("summary.fromIncome", {
+    say("budget", "summary.fromIncome", {
       share: String(inputs.incomeShare),
       term: i18n.formatYears(years),
       saved: formatMoney(standardCost - totalCost),
-    }));
+    });
   } else if (budgetRatio <= 1) {
-    parts.push(i18n.t("summary.fitsBudget", { budget: formatMoney(monthlyBudget) }));
+    say("budget", "summary.fitsBudget", { budget: formatMoney(monthlyBudget) });
   } else {
-    parts.push(i18n.t("summary.overBudget", { amount: formatMoney(requiredPayment - available) }));
+    say("overBudget", "summary.overBudget", { amount: formatMoney(requiredPayment - available) });
   }
   if (overBudgetCap) {
     const times = wholeAmountRatio < 10 ? wholeAmountRatio.toFixed(1) : String(Math.round(wholeAmountRatio));
-    parts.push(i18n.t("summary.farOverBudget", { times }));
+    say("cap", "summary.farOverBudget", { times });
   }
   if (coverage < 1) {
-    parts.push(i18n.t("summary.partialCoverage", { amount: formatMoney(coveredAmount) }));
+    say("partial", "summary.partialCoverage", { amount: formatMoney(coveredAmount) });
   }
   if (lender.minCreditScore !== null && score === null) {
-    parts.push(i18n.t("summary.needsCreditCheck"));
+    say("creditCheck", "summary.needsCreditCheck");
   }
   if (usesVariable) {
-    parts.push(i18n.t("summary.variableWarning"));
+    say("variable", "summary.variableWarning");
   } else if (rateType === "any" && variableApr !== null) {
-    parts.push(i18n.t("summary.alsoVariable", { apr: variableApr.min.toFixed(2) }));
+    say("info", "summary.alsoVariable", { apr: variableApr.min.toFixed(2) });
   }
   parts.push(...history.notes);
-  parts.push(i18n.t("summary.perks", { perks: i18n.t(`perks.${lender.id}`) }));
+  say("info", "summary.perks", { perks: i18n.t(`perks.${lender.id}`) });
+  const { short, more } = shortSummary(parts);
 
   return {
     lender,
@@ -532,8 +535,32 @@ function evaluateLender(lender, inputs) {
       historyCut: history.cut,
       overBudgetCap,
     },
-    summary: parts.join(i18n.t("summary.separator")),
+    summary: parts.map((part) => part.text).join(i18n.t("summary.separator")),
+    summaryShort: short,
+    summaryMore: more,
   };
+}
+
+// The order warnings are kept visible in when a card's summary is folded, most serious first (Matthew's choice).
+const WARNING_ORDER = ["cap", "overBudget", "debt", "bankruptcy", "record", "variable", "partial", "creditCheck"];
+
+// Splits a summary into what a folded card shows (the rate line, then the most serious warning, or the budget or
+// income line when there is none) and the rest, kept in order, for More details.
+function shortSummary(parts) {
+  const rate = parts.find((part) => part.kind === "rate");
+  const kept =
+    WARNING_ORDER.map((kind) => parts.find((part) => part.kind === kind)).find((part) => part !== undefined)
+    ?? parts.find((part) => part.kind === "budget");
+  const shown = [rate, kept].filter((part) => part !== undefined);
+  return {
+    short: shown.map((part) => part.text),
+    more: parts.filter((part) => !shown.includes(part)).map((part) => part.text),
+  };
+}
+
+// An unavailable loan's one-line reason is its whole summary, with nothing more to show.
+function withShortSummary(result) {
+  return result.summaryShort === undefined ? { ...result, summaryShort: [result.summary], summaryMore: [] } : result;
 }
 
 // Lenders open to this student's location: every national lender, plus their own state's program.
@@ -544,7 +571,7 @@ function lendersForLocation(state, lenders = LENDERS) {
 // Every lender available in the student's location, best first.
 function rankLenders(inputs, lenders = LENDERS) {
   return lendersForLocation(inputs.state, lenders)
-    .map((lender) => evaluateLender(lender, inputs))
+    .map((lender) => withShortSummary(evaluateLender(lender, inputs)))
     .sort((a, b) => b.rawScore - a.rawScore);
 }
 

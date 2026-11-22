@@ -18,6 +18,8 @@ let filterPresets = readFilterPresets(pageStorage);
 const DEBUG_MODE = new URLSearchParams(location.search).get("debug") === "1";
 // Which repayment graphs are open, so they stay open when the form changes and the cards are redrawn.
 const openGraphs = new Set();
+// Which cards have More details open, so they stay open when the form changes and the cards are redrawn.
+const openDetails = new Set();
 
 const US_STATES = {
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado",
@@ -236,6 +238,41 @@ function renderGraphControls(result, inSavedTab) {
   return { button, graphArea };
 }
 
+// A card's summary: the rate line and its most serious warning, then More details for the rest.
+function renderSummary(result, inSavedTab) {
+  const summary = document.createElement("div");
+  summary.className = "summary";
+  const separator = t("summary.separator");
+  const short = document.createElement("p");
+  short.className = "summary-short";
+  short.textContent = result.summaryShort.join(separator);
+  summary.append(short);
+  if (result.summaryMore.length === 0) return summary;
+
+  const key = `${inSavedTab ? "saved" : "recommended"}-${result.lender.id}`;
+  const more = document.createElement("p");
+  more.className = "summary-more";
+  more.id = `more-${key}`;
+  more.textContent = result.summaryMore.join(separator);
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "details-toggle";
+  toggle.setAttribute("aria-controls", more.id);
+  const show = () => {
+    const open = openDetails.has(key);
+    more.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.textContent = t(open ? "card.fewerDetails" : "card.moreDetails");
+  };
+  toggle.addEventListener("click", () => {
+    if (!openDetails.delete(key)) openDetails.add(key);
+    show();
+  });
+  show();
+  summary.append(more, toggle);
+  return summary;
+}
+
 function renderCard(result, isBest, inSavedTab = false) {
   const card = document.createElement("article");
   card.className = "card" + (result.eligible ? "" : " ineligible");
@@ -293,9 +330,7 @@ function renderCard(result, isBest, inSavedTab = false) {
     card.append(stats);
   }
 
-  const summary = document.createElement("p");
-  summary.className = "summary";
-  summary.textContent = result.summary;
+  const summary = renderSummary(withShortSummary(result), inSavedTab);
 
   const link = document.createElement("a");
   link.className = "loan-link";

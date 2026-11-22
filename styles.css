@@ -938,3 +938,25 @@ h2 {
   outline-offset: 4px;
   border-radius: 8px;
 }
+
+/* Short summaries: two lines on the card, the rest under More details. */
+.summary-short,
+.summary-more {
+  margin: 0;
+}
+
+.summary-more {
+  margin-top: 6px;
+}
+
+.details-toggle {
+  margin-top: 4px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--accent-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
