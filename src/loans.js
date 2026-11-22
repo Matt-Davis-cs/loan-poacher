@@ -27,6 +27,17 @@ function signingAge(state) {
   return SIGNING_AGES[state] ?? DEFAULT_SIGNING_AGE;
 }
 
+// Federal Direct Loan yearly limits for undergraduates (unchanged in July 2026), for the 1st year, 2nd year, and 3rd
+// year or later. Without a year and dependency status, Federal covers its listed maxAmount, as before.
+const FEDERAL_ANNUAL_LIMITS = { dependent: [5500, 6500, 7500], independent: [9500, 10500, 12500] };
+
+// The most a lender covers each year: Federal's depends on year in school and dependency; others are fixed.
+function coverageLimit(lender, { schoolYear = null, dependency = null }) {
+  const limits = FEDERAL_ANNUAL_LIMITS[dependency];
+  if (lender.id !== "federal" || limits === undefined || ![1, 2, 3].includes(schoolYear)) return lender.maxAmount;
+  return limits[schoolYear - 1];
+}
+
 // The rate types a student can choose: Any (every loan at its fixed rate, as before), Fixed, or Variable.
 // Private lenders also offer variable rates (sample ranges in variableApr); Federal and state programs don't.
 const RATE_TYPES = ["any", "fixed", "variable"];
@@ -453,7 +464,7 @@ function evaluateLender(lender, inputs) {
   const usesVariable = rateType === "variable";
   const rates = usesVariable ? { aprMin: variableApr.min, aprMax: variableApr.max } : lender;
 
-  const coveredAmount = Math.min(amount, lender.maxAmount);
+  const coveredAmount = Math.min(amount, coverageLimit(lender, inputs));
   const coverage = coveredAmount / amount;
   const apr = estimateApr(rates, score);
   const aprReason = aprFilterReason(apr, inputs);

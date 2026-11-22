@@ -998,3 +998,10 @@ h2 {
   font-size: 0.85rem;
   color: var(--muted);
 }
+
+/* What dependent and independent mean, right under the year in school. */
+.dependency-note {
+  margin: -6px 0 14px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}

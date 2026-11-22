@@ -60,6 +60,8 @@ function readInputs() {
     recentBankruptcy: document.getElementById("history-bankruptcy").checked,
     otherDebtPayments: readNumber("other-debts"),
     age: readNumber("age"),
+    schoolYear: readNumber("school-year"),
+    dependency: document.getElementById("dependency").value,
   };
 }
 
@@ -547,6 +549,10 @@ function presetSummary(filters) {
       years: formatYears(filters.years),
     }),
   ];
+  for (const [id, value] of [["school-year", filters.schoolYear], ["dependency", filters.dependency]]) {
+    const option = [...document.getElementById(id).options].find((choice) => choice.value === String(value));
+    if (option !== undefined) parts.push(option.textContent);
+  }
   if (filters.minApr !== null || filters.maxApr !== null) {
     parts.push(t("presets.apr", { range: `${filters.minApr ?? MIN_APR_FILTER}–${filters.maxApr ?? MAX_APR_FILTER}%` }));
   }
@@ -574,6 +580,8 @@ function applyFilterPreset({ filters }) {
   setValue("apr-min", filters.minApr);
   setValue("apr-max", filters.maxApr);
   setValue("rate-type", filters.rateType);
+  setValue("school-year", filters.schoolYear);
+  setValue("dependency", filters.dependency);
   setValue("residency", filters.residency);
   setValue("state", filters.state);
   document.getElementById("has-cosigner").checked = filters.hasCosigner;

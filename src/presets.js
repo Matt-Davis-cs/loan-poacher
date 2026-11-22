@@ -17,6 +17,8 @@ const PRESET_DEFAULTS = {
   state: null,
   hasCosigner: false,
   rateType: "any",
+  schoolYear: 1,
+  dependency: "dependent",
 };
 
 // The kind of value each part holds; anything else in storage falls back to the starting value.
@@ -30,6 +32,8 @@ const PRESET_FIELD_KINDS = {
   state: "text or blank",
   hasCosigner: "yes or no",
   rateType: "text",
+  schoolYear: "number",
+  dependency: "text",
 };
 
 function isKind(value, kind) {

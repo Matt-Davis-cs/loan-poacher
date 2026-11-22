@@ -32,6 +32,7 @@ function plainLabel(text) {
 function tourLabels() {
   return {
     situation: t("form.title"),
+    schoolYear: t("form.schoolYear"),
     apr: t("form.apr"),
     age: t("form.age"),
     rateType: t("form.rateType"),

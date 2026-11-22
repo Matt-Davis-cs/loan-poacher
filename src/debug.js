@@ -25,6 +25,7 @@ function describeInputs(inputs) {
     `credit score: ${inputs.creditScore ?? "not given"}`,
     `APR filter: ${inputs.minApr ?? "any"}% to ${inputs.maxApr ?? "any"}%`,
     `rate type: ${inputs.rateType ?? "any"}`,
+    `year in school: ${inputs.schoolYear ?? "not given"} (${inputs.dependency ?? "dependency not given"})`,
     `residency: ${inputs.residency}`,
     `state: ${inputs.state ?? "not given"}`,
     inputs.hasCosigner

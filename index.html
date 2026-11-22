@@ -69,6 +69,30 @@
           <span data-i18n="form.monthlyBudget">Monthly payment you can afford</span>
           <input id="monthly-budget" type="number" inputmode="numeric" min="1" step="10" value="150" />
         </label>
+        <fieldset class="pair-field">
+          <legend><span data-i18n="form.schoolYear">Year in school</span></legend>
+          <div class="pair-controls">
+            <label>
+              <span data-i18n="form.year">Year</span>
+              <select id="school-year">
+                <option value="1" selected data-i18n="year.first">1st year</option>
+                <option value="2" data-i18n="year.second">2nd year</option>
+                <option value="3" data-i18n="year.third">3rd year or later</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="form.dependency">Dependency</span>
+              <select id="dependency">
+                <option value="dependent" selected data-i18n="dependency.dependent">Dependent</option>
+                <option value="independent" data-i18n="dependency.independent">Independent</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+        <p class="dependency-note" data-i18n="form.dependencyNote">
+          You're independent if you're 24 or older, married, a veteran, or supporting a child, among other cases on the
+          FAFSA; otherwise you're dependent. Federal loans allow more each year for independent students.
+        </p>
         <fieldset id="income-field" class="pair-field">
           <legend>
             <span data-i18n="form.income">Your income</span>
