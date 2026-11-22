@@ -991,3 +991,10 @@ h2 {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* What the age question does and doesn't do, right under it. */
+.age-note {
+  margin: -6px 0 14px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}

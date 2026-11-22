@@ -14,6 +14,19 @@ const MAX_YEARS = 50;
 const OVER_BUDGET_LIMIT = 1.5;
 const OVER_BUDGET_CAP = 2;
 
+// The age to sign a loan on your own: 18 in most states (and when no state is given), 17 in Alabama for education
+// loans, 19 in Nebraska, and 21 in Mississippi. Younger students need a cosigner for private and state loans; federal
+// loans have no age limit. Age never changes a rating: the Equal Credit Opportunity Act bars using it against
+// anyone old enough to sign.
+const DEFAULT_SIGNING_AGE = 18;
+const SIGNING_AGES = { AL: 17, NE: 19, MS: 21 };
+const MIN_AGE = 13;
+const MAX_AGE = 100;
+
+function signingAge(state) {
+  return SIGNING_AGES[state] ?? DEFAULT_SIGNING_AGE;
+}
+
 // The rate types a student can choose: Any (every loan at its fixed rate, as before), Fixed, or Variable.
 // Private lenders also offer variable rates (sample ranges in variableApr); Federal and state programs don't.
 const RATE_TYPES = ["any", "fixed", "variable"];
@@ -290,6 +303,7 @@ function validateInputs({
   annualIncome = null,
   incomeShare = null,
   otherDebtPayments = null,
+  age = null,
 }) {
   const errors = [];
   if (!Number.isFinite(amount) || amount < 500 || amount > 200000) {
@@ -331,6 +345,9 @@ function validateInputs({
     && (!Number.isFinite(otherDebtPayments) || otherDebtPayments < 0 || otherDebtPayments > MAX_OTHER_DEBT_PAYMENTS)) {
     errors.push(i18n.t("error.otherDebts"));
   }
+  if (age !== null && (!Number.isInteger(age) || age < MIN_AGE || age > MAX_AGE)) {
+    errors.push(i18n.t("error.age"));
+  }
   return errors;
 }
 
@@ -350,6 +367,10 @@ function ineligibilityReason(lender, inputs, score) {
     if (!inputs.hasCosigner) {
       return i18n.t("reason.internationalCosigner");
     }
+  }
+  if (lender.type !== "Federal" && !inputs.hasCosigner && Number.isInteger(inputs.age)
+    && inputs.age < signingAge(inputs.state)) {
+    return i18n.t("reason.underAge", { age: signingAge(inputs.state) });
   }
   if (lender.minCreditScore !== null && score !== null && score < lender.minCreditScore) {
     return i18n.t("reason.creditScore", { score: lender.minCreditScore });

@@ -133,6 +133,15 @@
           </select>
         </label>
         <label>
+          <span data-i18n="form.age">Your age</span>
+          <span class="optional" data-i18n="form.optional">(optional)</span>
+          <input id="age" type="number" inputmode="numeric" min="13" max="100" step="1" />
+        </label>
+        <p class="age-note" data-i18n="form.ageNote">
+          Lenders can't use your age against you. It only matters if you're too young to sign a loan on your own; then
+          private loans need a cosigner. Federal loans have no age limit.
+        </p>
+        <label>
           <span data-i18n="form.residency">Citizenship or residency</span>
           <select id="residency">
             <option value="citizen" selected data-i18n="residency.citizen">U.S. citizen</option>

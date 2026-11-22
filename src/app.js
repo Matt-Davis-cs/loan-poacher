@@ -59,6 +59,7 @@ function readInputs() {
     federalDefault: document.getElementById("history-federal-default").checked,
     recentBankruptcy: document.getElementById("history-bankruptcy").checked,
     otherDebtPayments: readNumber("other-debts"),
+    age: readNumber("age"),
   };
 }
 

@@ -36,6 +36,7 @@ function describeInputs(inputs) {
       : `income: ${loanLogic.formatMoney(inputs.annualIncome)}/year, ${inputs.incomeShare}% toward loans `
         + `(${loanLogic.formatMoney((inputs.annualIncome * inputs.incomeShare) / 100 / 12)}/month)`,
     `history: ${historyGiven(inputs) ? "given (answers are private and not shown)" : "not given"}`,
+    `age: ${(inputs.age ?? null) === null ? "not given" : "given (not shown)"}`,
   ].join(", ");
 }
 
