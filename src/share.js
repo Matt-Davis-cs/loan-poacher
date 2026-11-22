@@ -19,6 +19,13 @@ function xShareUrl(message, appLink) {
   return `${X_NEW_POST_ADDRESS}?text=${encodeURIComponent(message)}${linkPart}`;
 }
 
+// Instagram can't take a ready-filled post from a website, so the student gets the same message as a caption to paste.
+const INSTAGRAM_ADDRESS = "https://www.instagram.com/";
+
+function instagramCaption(message, appLink) {
+  return appLink === null ? message : `${message}\n\n${appLink}`;
+}
+
 if (typeof module !== "undefined") {
-  module.exports = { publicAppLink, xShareUrl };
+  module.exports = { instagramCaption, publicAppLink, xShareUrl };
 }

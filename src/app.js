@@ -175,6 +175,82 @@ function renderCommentArea(lender) {
   return area;
 }
 
+// Lines of text that fit a width: split at spaces, or between characters for languages written without them.
+function wrapText(context, text, width) {
+  const words = text.includes(" ") ? text.split(" ") : [...text];
+  const joiner = text.includes(" ") ? " " : "";
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const tryLine = line === "" ? word : line + joiner + word;
+    if (context.measureText(tryLine).width > width && line !== "") {
+      lines.push(line);
+      line = word;
+    } else {
+      line = tryLine;
+    }
+  }
+  if (line !== "") lines.push(line);
+  return lines;
+}
+
+// A square image for an Instagram post in the page's own colors: the app's name, the share message, and its link.
+// Like the X post, it only ever holds the message and link, never the student's numbers.
+function instagramImage(message, appLink) {
+  const size = 1080;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  const colors = getComputedStyle(document.documentElement);
+  context.fillStyle = colors.getPropertyValue("--accent").trim() || "#178244";
+  context.fillRect(0, 0, size, size);
+  context.fillStyle = colors.getPropertyValue("--accent-text").trim() || "#ffffff";
+  context.direction = document.documentElement.dir === "rtl" ? "rtl" : "ltr";
+  context.textAlign = "center";
+  context.font = "800 110px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+  context.fillText("Loan Poacher", size / 2, 260);
+  context.font = "600 56px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+  wrapText(context, message, size - 200).forEach((line, index) => context.fillText(line, size / 2, 440 + index * 76));
+  if (appLink !== null) {
+    context.font = "500 38px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+    context.fillText(appLink, size / 2, size - 110);
+  }
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+}
+
+// Shares the news on Instagram: copies the caption, then on a phone opens the share menu with the image so the student
+// can pick Instagram; on a laptop downloads the image and opens Instagram. Nothing is posted by itself.
+async function shareOnInstagram(note) {
+  const appLink = publicAppLink(location.href);
+  const caption = instagramCaption(t("share.message"), appLink);
+  let copied = true;
+  try {
+    await navigator.clipboard.writeText(caption);
+  } catch {
+    copied = false;
+  }
+  const image = new File([await instagramImage(t("share.message"), appLink)], "loan-poacher.png", { type: "image/png" });
+
+  const isPhone = window.matchMedia("(pointer: coarse)").matches;
+  if (isPhone && navigator.canShare?.({ files: [image] })) {
+    note.textContent = copied ? t("share.instagramPhone") : t("share.instagramManual", { caption });
+    try {
+      await navigator.share({ files: [image] });
+    } catch {
+      // Closing the share menu is fine; the note still says what to do.
+    }
+    return;
+  }
+  const download = document.createElement("a");
+  download.href = URL.createObjectURL(image);
+  download.download = image.name;
+  download.click();
+  setTimeout(() => URL.revokeObjectURL(download.href), 10000);
+  window.open(INSTAGRAM_ADDRESS, "_blank", "noopener,noreferrer");
+  note.textContent = copied ? t("share.instagramDone") : t("share.instagramManual", { caption });
+}
+
 // The "I got this loan" button on a saved loan, and the Share link it reveals; it updates in place so a comment box
 // open on another card stays open.
 function renderLoanOutcome(lender) {
@@ -212,6 +288,16 @@ function renderLoanOutcome(lender) {
     if (receivedLoanIds.includes(lender.id)) celebrate();
   });
   showOutcome();
+
+  const instagram = document.createElement("button");
+  instagram.type = "button";
+  instagram.className = "save-button";
+  instagram.textContent = t("share.onInstagram");
+  const instagramNote = document.createElement("p");
+  instagramNote.className = "share-note instagram-note";
+  instagramNote.setAttribute("aria-live", "polite");
+  instagram.addEventListener("click", () => shareOnInstagram(instagramNote));
+  shareArea.append(instagram, instagramNote);
 
   area.append(button, shareArea);
   return area;

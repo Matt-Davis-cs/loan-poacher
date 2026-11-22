@@ -43,6 +43,7 @@ function tourLabels() {
     graph: t("graph.show"),
     moreDetails: t("card.moreDetails"),
     gotIt: t("received.label"),
+    instagram: t("share.onInstagram"),
     theme: plainLabel(t("header.theme")),
     finish: plainLabel(t("header.finish")),
     page: plainLabel(t("header.mode")),
