@@ -766,6 +766,7 @@ function applyLanguage(language) {
   showPresetStatus("");
   update();
   refreshTour();
+  refreshIdleMessage();
   try {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, getLanguage());
   } catch {
@@ -796,6 +797,7 @@ setUpCosigner();
 setUpTerm();
 setUpDebugPanel();
 setUpTour();
+setUpIdleMessages();
 setUpTabs();
 setUpFilterPresets();
 setUpLanguages();

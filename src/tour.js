@@ -49,6 +49,7 @@ function tourLabels() {
     page: plainLabel(t("header.mode")),
     language: plainLabel(t("header.language")),
     howItWorks: t("header.howItWorks"),
+    dontShow: t("encourage.dontShow"),
     black: t("theme.black"),
     gray: t("theme.gray"),
     metallic: t("finish.metallic"),
