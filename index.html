@@ -69,7 +69,15 @@
           <span data-i18n="form.monthlyBudget">Monthly payment you can afford</span>
           <input id="monthly-budget" type="number" inputmode="numeric" min="1" step="10" value="150" />
         </label>
-        <fieldset class="pair-field">
+        <label>
+          <span data-i18n="form.studyLevel">Level of study</span>
+          <select id="study-level">
+            <option value="undergraduate" selected data-i18n="level.undergraduate">Undergraduate</option>
+            <option value="graduate" data-i18n="level.graduate">Graduate</option>
+            <option value="professional" data-i18n="level.professional">Professional (law, medicine, etc.)</option>
+          </select>
+        </label>
+        <fieldset id="school-year-field" class="pair-field">
           <legend><span data-i18n="form.schoolYear">Year in school</span></legend>
           <div class="pair-controls">
             <label>
@@ -89,7 +97,7 @@
             </label>
           </div>
         </fieldset>
-        <p class="dependency-note" data-i18n="form.dependencyNote">
+        <p id="dependency-note" class="dependency-note" data-i18n="form.dependencyNote">
           You're independent if you're 24 or older, married, a veteran, or supporting a child, among other cases on the
           FAFSA; otherwise you're dependent. Federal loans allow more each year for independent students.
         </p>
@@ -228,6 +236,7 @@
           Rates are built-in sample data for comparison, not live quotes or financial advice. Check each lender for
           current terms.
         </p>
+        <p id="federal-rules-note" class="federal-rules-note"></p>
       </form>
 
       <section class="results">
@@ -290,6 +299,7 @@
 
     <script src="src/i18n.js"></script>
     <script src="src/colors.js"></script>
+    <script src="src/federal-rules.js"></script>
     <script src="src/loans.js"></script>
     <script src="src/saved.js"></script>
     <script src="src/presets.js"></script>

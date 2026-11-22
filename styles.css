@@ -1005,3 +1005,15 @@ h2 {
   font-size: 0.85rem;
   color: var(--muted);
 }
+
+/* Which school year's federal rates and limits the app uses; it turns into a warning once that year has ended. */
+.federal-rules-note {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.federal-rules-note.outdated {
+  color: var(--error);
+  font-weight: 600;
+}

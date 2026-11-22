@@ -19,6 +19,7 @@ const PRESET_DEFAULTS = {
   rateType: "any",
   schoolYear: 1,
   dependency: "dependent",
+  studyLevel: "undergraduate",
 };
 
 // The kind of value each part holds; anything else in storage falls back to the starting value.
@@ -34,6 +35,7 @@ const PRESET_FIELD_KINDS = {
   rateType: "text",
   schoolYear: "number",
   dependency: "text",
+  studyLevel: "text",
 };
 
 function isKind(value, kind) {

@@ -60,14 +60,38 @@ function readInputs() {
     recentBankruptcy: document.getElementById("history-bankruptcy").checked,
     otherDebtPayments: readNumber("other-debts"),
     age: readNumber("age"),
+    studyLevel: document.getElementById("study-level").value,
     schoolYear: readNumber("school-year"),
     dependency: document.getElementById("dependency").value,
   };
 }
 
+// Shows year in school and dependency only for undergraduates; graduate students count as independent.
+function showYearInSchool() {
+  const undergraduate = document.getElementById("study-level").value === "undergraduate";
+  document.getElementById("school-year-field").hidden = !undergraduate;
+  document.getElementById("dependency-note").hidden = !undergraduate;
+}
+
+// Says which school year's federal rates and limits the app uses, or that they may be out of date once it has ended.
+function showFederalRulesNote() {
+  const note = document.getElementById("federal-rules-note");
+  const expired = federalRulesExpired(new Date());
+  const checked = new Intl.DateTimeFormat(getLanguage(), { dateStyle: "long" }).format(
+    new Date(`${FEDERAL_RULES.checkedOn}T12:00:00`),
+  );
+  note.textContent = t(expired ? "federal.outdated" : "federal.checked", { year: FEDERAL_RULES.schoolYear, date: checked });
+  note.classList.toggle("outdated", expired);
+}
+
 // Shows the cosigner's details only while "I have a cosigner" is ticked.
 function showCosignerDetails() {
   document.getElementById("cosigner-details").hidden = !document.getElementById("has-cosigner").checked;
+}
+
+function setUpStudyLevel() {
+  document.getElementById("study-level").addEventListener("change", showYearInSchool);
+  showYearInSchool();
 }
 
 function setUpCosigner() {
@@ -549,7 +573,10 @@ function presetSummary(filters) {
       years: formatYears(filters.years),
     }),
   ];
-  for (const [id, value] of [["school-year", filters.schoolYear], ["dependency", filters.dependency]]) {
+  const shownChoices = filters.studyLevel === "graduate" || filters.studyLevel === "professional"
+    ? [["study-level", filters.studyLevel]]
+    : [["school-year", filters.schoolYear], ["dependency", filters.dependency]];
+  for (const [id, value] of shownChoices) {
     const option = [...document.getElementById(id).options].find((choice) => choice.value === String(value));
     if (option !== undefined) parts.push(option.textContent);
   }
@@ -580,6 +607,7 @@ function applyFilterPreset({ filters }) {
   setValue("apr-min", filters.minApr);
   setValue("apr-max", filters.maxApr);
   setValue("rate-type", filters.rateType);
+  setValue("study-level", filters.studyLevel);
   setValue("school-year", filters.schoolYear);
   setValue("dependency", filters.dependency);
   setValue("residency", filters.residency);
@@ -588,6 +616,7 @@ function applyFilterPreset({ filters }) {
   syncTermSlider();
   showTerm();
   showCosignerDetails();
+  showYearInSchool();
   update();
   selectTab("recommendations-tab");
   document.getElementById("recommendations-tab").focus();
@@ -774,6 +803,7 @@ function applyLanguage(language) {
   renderFilterPresets();
   showPresetStatus("");
   update();
+  showFederalRulesNote();
   refreshTour();
   refreshIdleMessage();
   try {
@@ -803,6 +833,7 @@ setUpColors();
 prepareCheer();
 setUpStates();
 setUpCosigner();
+setUpStudyLevel();
 setUpTerm();
 setUpDebugPanel();
 setUpTour();

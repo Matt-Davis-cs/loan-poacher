@@ -33,6 +33,7 @@ function tourLabels() {
   return {
     situation: t("form.title"),
     schoolYear: t("form.schoolYear"),
+    studyLevel: t("form.studyLevel"),
     apr: t("form.apr"),
     age: t("form.age"),
     rateType: t("form.rateType"),

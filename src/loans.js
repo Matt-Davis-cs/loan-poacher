@@ -1,8 +1,9 @@
 // Sample lender data and the scoring logic for Loan Poacher.
 // Rates are illustrative sample values, not live quotes.
 
-// The browser loads i18n.js before this file; tests running in Node load it here.
+// The browser loads i18n.js and federal-rules.js before this file; tests running in Node load them here.
 const i18n = typeof module !== "undefined" ? require("./i18n.js") : { t, formatYears };
+const federal = typeof module !== "undefined" ? require("./federal-rules.js") : { FEDERAL_RULES, STUDY_LEVELS };
 
 // The repayment term a student can pick, in whole years.
 const MIN_YEARS = 1;
@@ -27,15 +28,27 @@ function signingAge(state) {
   return SIGNING_AGES[state] ?? DEFAULT_SIGNING_AGE;
 }
 
-// Federal Direct Loan yearly limits for undergraduates (unchanged in July 2026), for the 1st year, 2nd year, and 3rd
-// year or later. Without a year and dependency status, Federal covers its listed maxAmount, as before.
-const FEDERAL_ANNUAL_LIMITS = { dependent: [5500, 6500, 7500], independent: [9500, 10500, 12500] };
+// The student's level of study: undergraduate unless they chose graduate or professional.
+function studyLevel({ studyLevel: level = null }) {
+  return federal.STUDY_LEVELS.includes(level) ? level : "undergraduate";
+}
 
-// The most a lender covers each year: Federal's depends on year in school and dependency; others are fixed.
-function coverageLimit(lender, { schoolYear = null, dependency = null }) {
-  const limits = FEDERAL_ANNUAL_LIMITS[dependency];
-  if (lender.id !== "federal" || limits === undefined || ![1, 2, 3].includes(schoolYear)) return lender.maxAmount;
-  return limits[schoolYear - 1];
+// The most a lender covers each year. Federal's depends on level of study, and for undergraduates on year in school
+// and dependency (without both, its listed maxAmount, as before); other lenders' are fixed.
+function coverageLimit(lender, inputs) {
+  if (lender.id !== "federal") return lender.maxAmount;
+  const level = studyLevel(inputs);
+  if (level !== "undergraduate") return federal.FEDERAL_RULES.annualLimits[level];
+  const limits = federal.FEDERAL_RULES.annualLimits.undergraduate[inputs.dependency];
+  const year = inputs.schoolYear;
+  return limits === undefined || ![1, 2, 3].includes(year) ? lender.maxAmount : limits[year - 1];
+}
+
+// A lender's APR range: Federal's single rate depends on level of study; others use their own (fixed) range.
+function fixedRates(lender, inputs) {
+  if (lender.id !== "federal") return lender;
+  const rate = federal.FEDERAL_RULES.rates[studyLevel(inputs)];
+  return { aprMin: rate, aprMax: rate };
 }
 
 // The rate types a student can choose: Any (every loan at its fixed rate, as before), Fixed, or Variable.
@@ -63,12 +76,13 @@ const LENDERS = [
     name: "Federal Direct Loan",
     type: "Federal",
     url: "https://studentaid.gov/understand-aid/types/loans/subsidized-unsubsidized",
-    aprMin: 6.39,
-    aprMax: 6.39,
+    // Federal numbers come from federal-rules.js; these are the undergraduate ones.
+    aprMin: federal.FEDERAL_RULES.rates.undergraduate,
+    aprMax: federal.FEDERAL_RULES.rates.undergraduate,
     variableApr: null,
-    originationFeePercent: 1.057,
+    originationFeePercent: federal.FEDERAL_RULES.originationFeePercent,
     minCreditScore: null,
-    maxAmount: 7500,
+    maxAmount: federal.FEDERAL_RULES.annualLimits.undergraduate.dependent[2],
     flexibility: 10,
     acceptsInternational: false,
   },
@@ -462,7 +476,7 @@ function evaluateLender(lender, inputs) {
     return { lender, eligible: false, rating: 0, rawScore: 0, summary: i18n.t("reason.fixedOnly") };
   }
   const usesVariable = rateType === "variable";
-  const rates = usesVariable ? { aprMin: variableApr.min, aprMax: variableApr.max } : lender;
+  const rates = usesVariable ? { aprMin: variableApr.min, aprMax: variableApr.max } : fixedRates(lender, inputs);
 
   const coveredAmount = Math.min(amount, coverageLimit(lender, inputs));
   const coverage = coveredAmount / amount;
