@@ -8,6 +8,12 @@ const i18n = typeof module !== "undefined" ? require("./i18n.js") : { t, formatY
 const MIN_YEARS = 1;
 const MAX_YEARS = 50;
 
+// A loan whose required payment is more than this many times what the student can put in each month is rated at
+// most OVER_BUDGET_CAP points, since it can't really be afforded however good its rate is (Matthew's choice, 2026-11-21).
+// Its score is shrunk into 0 to OVER_BUDGET_CAP rather than cut off there, so better loans still rank above worse ones.
+const OVER_BUDGET_LIMIT = 1.5;
+const OVER_BUDGET_CAP = 2;
+
 // The rate types a student can choose: Any (every loan at its fixed rate, as before), Fixed, or Variable.
 // Private lenders also offer variable rates (sample ranges in variableApr); Federal and state programs don't.
 const RATE_TYPES = ["any", "fixed", "variable"];
@@ -461,7 +467,10 @@ function evaluateLender(lender, inputs) {
   // Covering only part of the amount already counts against affordability above, so this extra cut stays small.
   const coverageMultiplier = 0.8 + 0.2 * coverage;
   const history = historyEffects(lender, inputs, requiredPayment);
-  const rawScore = Math.max(0, 10 * weighted * coverageMultiplier - history.cut);
+  // Judged on the whole amount, like affordability, so covering only part never escapes the cap.
+  const overBudgetCap = wholeAmountRatio > OVER_BUDGET_LIMIT;
+  const uncappedScore = Math.max(0, 10 * weighted * coverageMultiplier - history.cut);
+  const rawScore = overBudgetCap ? (uncappedScore * OVER_BUDGET_CAP) / 10 : uncappedScore;
 
   const parts = [];
   const rateLabel = lender.aprMin === lender.aprMax ? "fixed" : score === null ? "typical" : "estimated";
@@ -477,6 +486,10 @@ function evaluateLender(lender, inputs) {
     parts.push(i18n.t("summary.fitsBudget", { budget: formatMoney(monthlyBudget) }));
   } else {
     parts.push(i18n.t("summary.overBudget", { amount: formatMoney(requiredPayment - available) }));
+  }
+  if (overBudgetCap) {
+    const times = wholeAmountRatio < 10 ? wholeAmountRatio.toFixed(1) : String(Math.round(wholeAmountRatio));
+    parts.push(i18n.t("summary.farOverBudget", { times }));
   }
   if (coverage < 1) {
     parts.push(i18n.t("summary.partialCoverage", { amount: formatMoney(coveredAmount) }));
@@ -517,6 +530,7 @@ function evaluateLender(lender, inputs) {
       coverage,
       coverageMultiplier,
       historyCut: history.cut,
+      overBudgetCap,
     },
     summary: parts.join(i18n.t("summary.separator")),
   };

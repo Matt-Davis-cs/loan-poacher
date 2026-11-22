@@ -59,7 +59,8 @@ function describeResult(result, place, inputs) {
     ...extraLine,
     `   affordability ${parts.affordability.toFixed(2)}, rate ${parts.rate.toFixed(2)}, ` +
       `flexibility ${parts.flexibility.toFixed(2)}, fee ${parts.fee.toFixed(2)}, coverage cut ×${parts.coverageMultiplier.toFixed(2)}` +
-      (parts.historyCut > 0 ? `, Your history −${parts.historyCut.toFixed(2)}` : ""),
+      (parts.historyCut > 0 ? `, Your history −${parts.historyCut.toFixed(2)}` : "") +
+      (parts.overBudgetCap ? ", then shrunk to 0–2 for being over 150% of what can be paid" : ""),
   ].join("\n");
 }
 
